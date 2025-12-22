@@ -173,7 +173,7 @@ const Patients = () => {
   );
 
   const handleDelete = (id: string, name: string) => {
-    if (confirm(`Delete ${name}?`)) {
+    if (confirm(`Are you sure you want to permanently delete patient ${name}?`)) {
       deletePatient(id);
     }
   };
@@ -238,7 +238,10 @@ const Patients = () => {
                     <div className="flex items-center justify-end space-x-2">
                       <button onClick={() => setSelectedPatient(patient)} className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-all">View</button>
                       {currentUser?.role === 'admin' && (
-                        <button onClick={() => setEditingPatient(patient)} className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all">Edit</button>
+                        <>
+                          <button onClick={() => setEditingPatient(patient)} className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-all">Edit</button>
+                          <button onClick={() => handleDelete(patient.id, patient.name)} className="text-[10px] font-bold text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1.5 rounded-lg hover:bg-rose-100 transition-all">Delete</button>
+                        </>
                       )}
                     </div>
                   </td>
@@ -267,7 +270,10 @@ const Patients = () => {
                 <div className="flex space-x-2">
                   <button onClick={() => setSelectedPatient(patient)} className="text-[10px] font-bold text-blue-600 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg">View</button>
                   {currentUser?.role === 'admin' && (
-                    <button onClick={() => setEditingPatient(patient)} className="text-[10px] font-bold text-amber-600 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg">Edit</button>
+                    <>
+                      <button onClick={() => setEditingPatient(patient)} className="text-[10px] font-bold text-amber-600 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 rounded-lg">Edit</button>
+                      <button onClick={() => handleDelete(patient.id, patient.name)} className="text-[10px] font-bold text-rose-600 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 rounded-lg">Delete</button>
+                    </>
                   )}
                 </div>
               </div>

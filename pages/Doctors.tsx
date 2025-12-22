@@ -77,6 +77,129 @@ const DoctorProfileModal = ({ doctor, onClose }: { doctor: Doctor, onClose: () =
   );
 };
 
+const EditDoctorModal = ({ doctor, onClose }: { doctor: Doctor, onClose: () => void }) => {
+  const { updateDoctor } = useHospital();
+  const [formData, setFormData] = useState({
+    name: doctor.name,
+    specialty: doctor.specialty,
+    experience: doctor.experience,
+    availability: doctor.availability
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateDoctor(doctor.id, formData);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6 border border-slate-200 dark:border-slate-800">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Edit Doctor Profile</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-400 uppercase">Doctor Name</label>
+            <input 
+              required 
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" 
+              value={formData.name} 
+              onChange={e => setFormData({...formData, name: e.target.value})} 
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Specialty</label>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-slate-200" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})}>
+                <option value="General Physician">General Physician</option>
+                <option value="Cardiologist">Cardiologist</option>
+                <option value="Neurologist">Neurologist</option>
+                <option value="Surgeon">Surgeon</option>
+                <option value="Pediatrician">Pediatrician</option>
+                <option value="Endocrinologist">Endocrinologist</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Experience</label>
+              <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-400 uppercase">Availability</label>
+            <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.availability} onChange={e => setFormData({...formData, availability: e.target.value})} />
+          </div>
+          <div className="flex space-x-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-slate-500 dark:text-slate-400 transition-colors text-sm">Cancel</button>
+            <button type="submit" className="flex-1 bg-indigo-600 py-3 rounded-xl font-bold text-white shadow-lg shadow-indigo-200 dark:shadow-none text-sm">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const AddDoctorModal = ({ onClose }: { onClose: () => void }) => {
+  const { addDoctor } = useHospital();
+  const [formData, setFormData] = useState({
+    name: '',
+    specialty: 'General Physician',
+    experience: '5 Years',
+    availability: 'Mon - Fri',
+    image: `https://picsum.photos/seed/${Math.random()}/200/200`
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) return;
+    addDoctor(formData);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6 border border-slate-200 dark:border-slate-800">
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Register New Doctor</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-400 uppercase">Doctor Name</label>
+            <input 
+              required 
+              placeholder="Dr. Jane Doe" 
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" 
+              value={formData.name} 
+              onChange={e => setFormData({...formData, name: e.target.value})} 
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Specialty</label>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-slate-200" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})}>
+                <option value="General Physician">General Physician</option>
+                <option value="Cardiologist">Cardiologist</option>
+                <option value="Neurologist">Neurologist</option>
+                <option value="Surgeon">Surgeon</option>
+                <option value="Pediatrician">Pediatrician</option>
+                <option value="Endocrinologist">Endocrinologist</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Experience</label>
+              <input required placeholder="e.g. 10 Years" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-400 uppercase">Availability</label>
+            <input required placeholder="Mon, Wed, Fri" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.availability} onChange={e => setFormData({...formData, availability: e.target.value})} />
+          </div>
+          <div className="flex space-x-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-slate-500 dark:text-slate-400 transition-colors text-sm">Cancel</button>
+            <button type="submit" className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 dark:shadow-none text-sm">Add Staff</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const Doctors = () => {
   const { doctors, deleteDoctor, currentUser } = useHospital();
   const [isAdding, setIsAdding] = useState(false);
@@ -84,7 +207,9 @@ const Doctors = () => {
   const [selectedDoctorProfile, setSelectedDoctorProfile] = useState<Doctor | null>(null);
 
   const handleDelete = (id: string, name: string) => {
-    if(confirm(`Remove ${name}?`)) deleteDoctor(id);
+    if(confirm(`Are you sure you want to permanently remove ${name} from the medical staff?`)) {
+      deleteDoctor(id);
+    }
   };
 
   return (
@@ -104,7 +229,20 @@ const Doctors = () => {
           <div key={doctor.id} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 p-6 md:p-8 flex flex-col items-center text-center group relative shadow-sm">
             {currentUser?.role === 'admin' && (
               <div className="absolute top-4 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-all">
-                <button onClick={() => setEditingDoctor(doctor)} className="p-2 text-amber-500 rounded-full hover:bg-amber-50"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setEditingDoctor(doctor); }} 
+                  className="p-2 text-amber-500 rounded-full hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
+                  title="Edit Doctor"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleDelete(doctor.id, doctor.name); }} 
+                  className="p-2 text-rose-500 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                  title="Remove Doctor"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
               </div>
             )}
             <img src={doctor.image} alt={doctor.name} className="w-20 h-20 md:w-24 md:h-24 rounded-[1.5rem] md:rounded-[2rem] border-4 border-slate-50 dark:border-slate-800 object-cover shadow-lg mb-6" />
@@ -128,6 +266,8 @@ const Doctors = () => {
       </div>
 
       {selectedDoctorProfile && <DoctorProfileModal doctor={selectedDoctorProfile} onClose={() => setSelectedDoctorProfile(null)} />}
+      {isAdding && <AddDoctorModal onClose={() => setIsAdding(false)} />}
+      {editingDoctor && <EditDoctorModal doctor={editingDoctor} onClose={() => setEditingDoctor(null)} />}
     </div>
   );
 };
