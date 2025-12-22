@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Patient, Appointment, Doctor, User } from './types';
+import { Patient, Appointment, Doctor, User, AppNotification } from './types';
 import { VirtualDB } from './BackendEngine';
 
 interface HospitalContextType {
@@ -9,11 +9,14 @@ interface HospitalContextType {
   patients: Patient[];
   appointments: Appointment[];
   doctors: Doctor[];
+  notifications: AppNotification[];
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   login: (email: string, password: string) => Promise<boolean>;
   register: (payload: any) => Promise<void>;
   logout: () => void;
+  markNotificationsRead: () => void;
+  addNotification: (title: string, message: string, type: AppNotification['type']) => void;
   updateUser: (id: string, updates: Partial<User>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
   addPatient: (patient: Omit<Patient, 'id' | 'history'>) => Promise<void>;
@@ -39,6 +42,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('healsync_theme');
@@ -62,6 +66,9 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     const init = async () => {
       await VirtualDB.initialize();
       await refreshData();
+      
+      // Initial notification
+      addNotification('System Online', 'HealSync secure virtual environment initialized.', 'system');
     };
     init();
   }, []);
@@ -77,11 +84,28 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
+  const addNotification = (title: string, message: string, type: AppNotification['type']) => {
+    const newNotif: AppNotification = {
+      id: Math.random().toString(36).substring(7),
+      title,
+      message,
+      time: 'Just now',
+      type,
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev.slice(0, 9)]);
+  };
+
+  const markNotificationsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
   const login = async (email: string, password: string) => {
     const res = await VirtualDB.request<{ user: User, token: string }>('POST', '/api/auth/login', { email, password });
     if (res.status === 200 && res.data) {
       setCurrentUser(res.data.user);
       localStorage.setItem('healsync_current_user', JSON.stringify(res.data.user));
+      addNotification('Login Successful', `Welcome back, ${res.data.user.name}`, 'system');
       return true;
     }
     return false;
@@ -113,11 +137,15 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const addPatient = async (patient: Omit<Patient, 'id' | 'history'>) => {
     await VirtualDB.request('POST', '/api/patients', { ...patient, history: [] });
+    addNotification('Patient Admitted', `${patient.name} has been added to the directory.`, 'patient');
     await refreshData();
   };
 
   const updatePatient = async (id: string, updates: Partial<Patient>) => {
     await VirtualDB.request('PUT', '/api/patients', { id, ...updates });
+    if (updates.status) {
+      addNotification('Status Update', `Patient status changed to ${updates.status}`, 'patient');
+    }
     await refreshData();
   };
 
@@ -128,6 +156,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const addAppointment = async (appointment: Omit<Appointment, 'id'>) => {
     await VirtualDB.request('POST', '/api/appointments', appointment);
+    addNotification('New Appointment', `Visit scheduled for ${appointment.patientName} with ${appointment.doctorName}.`, 'appointment');
     await refreshData();
   };
 
@@ -143,6 +172,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const addDoctor = async (doctor: Omit<Doctor, 'id'>) => {
     await VirtualDB.request('POST', '/api/doctors', doctor);
+    addNotification('Staff Added', `${doctor.name} has joined the medical team.`, 'system');
     await refreshData();
   };
 
@@ -163,9 +193,9 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   return (
     <HospitalContext.Provider value={{
-      currentUser, users, patients, appointments, doctors,
+      currentUser, users, patients, appointments, doctors, notifications,
       theme, toggleTheme,
-      login, logout, register,
+      login, logout, register, markNotificationsRead, addNotification,
       updateUser, deleteUser,
       addPatient, updatePatient, deletePatient,
       addAppointment, updateAppointment, deleteAppointment,

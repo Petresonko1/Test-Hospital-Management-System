@@ -2,17 +2,7 @@
 import React, { useState } from 'react';
 import { useHospital } from '../HospitalContext';
 import { Patient, PatientStatus } from '../types';
-import { getMedicalInsights } from '../services/geminiService';
-
-const StatusBadge = ({ status }: { status: PatientStatus }) => {
-  const styles = {
-    Stable: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400',
-    Critical: 'bg-rose-50 text-rose-600 dark:bg-rose-900/20 dark:text-rose-400',
-    Discharged: 'bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-    'In Treatment': 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-  };
-  return <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>{status}</span>;
-};
+import PatientDetailsModal, { StatusBadge } from '../components/PatientDetailsModal';
 
 const EditPatientModal = ({ patient, onClose }: { patient: Patient, onClose: () => void }) => {
   const { updatePatient, doctors } = useHospital();
@@ -37,7 +27,7 @@ const EditPatientModal = ({ patient, onClose }: { patient: Patient, onClose: () 
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl shadow-2xl p-8 space-y-6 transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl shadow-2xl p-8 space-y-6 transition-all border border-slate-200 dark:border-slate-800">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Edit Patient Profile</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -102,126 +92,6 @@ const EditPatientModal = ({ patient, onClose }: { patient: Patient, onClose: () 
   );
 };
 
-const PatientDetailsModal = ({ patient, onClose }: { patient: Patient, onClose: () => void }) => {
-  const [insights, setInsights] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-
-  const fetchInsights = async () => {
-    setLoading(true);
-    const result = await getMedicalInsights(patient);
-    setInsights(result);
-    setLoading(false);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl transition-all">
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg">
-              {patient.name.charAt(0)}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white">{patient.name}</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">ID: {patient.id} • {patient.age}y • {patient.gender}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 p-2">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="space-y-6">
-            <section>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Vitals & Status</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Blood Group</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">{patient.bloodGroup}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Current Status</span>
-                  <StatusBadge status={patient.status} />
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Admitted Date</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-200">{patient.admissionDate}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-slate-400">Assigned Doctor</span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">{patient.doctor}</span>
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Main Condition</h4>
-              <p className="text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700 italic">
-                "{patient.condition || 'No description provided'}"
-              </p>
-            </section>
-
-            <button 
-              onClick={fetchInsights}
-              disabled={loading}
-              className="w-full bg-slate-900 dark:bg-white dark:text-slate-900 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-              <span>{loading ? 'Analyzing...' : 'Generate AI Insights'}</span>
-            </button>
-          </div>
-
-          <div className="md:col-span-2 space-y-6">
-            {!insights ? (
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-700 transition-all">
-                <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                  <svg className="w-8 h-8 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <h4 className="font-bold text-slate-800 dark:text-slate-200">No AI insights generated yet</h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Click the button on the left to analyze patient data using Gemini 3.</p>
-              </div>
-            ) : (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <section className="bg-blue-50/50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30">
-                  <h4 className="text-blue-800 dark:text-blue-400 font-bold mb-2 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" /></svg>
-                    Clinical Summary
-                  </h4>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{insights.summary}</p>
-                </section>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-rose-50/50 dark:bg-rose-900/10 p-6 rounded-2xl border border-rose-100 dark:border-rose-900/30">
-                    <h4 className="text-rose-800 dark:text-rose-400 font-bold mb-3 text-sm">Potential Risks</h4>
-                    <ul className="space-y-2">
-                      {insights.risks?.map((risk: string, i: number) => (
-                        <li key={i} className="text-xs text-rose-700 dark:text-rose-300 flex items-start">
-                          <span className="mr-2">•</span> {risk}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-6 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
-                    <h4 className="text-emerald-800 dark:text-emerald-400 font-bold mb-3 text-sm">Dietary Plan</h4>
-                    <ul className="space-y-2">
-                      {insights.dietPlan?.map((item: string, i: number) => (
-                        <li key={i} className="text-xs text-emerald-700 dark:text-emerald-300 flex items-start">
-                          <span className="mr-2">•</span> {item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
   const { addPatient, doctors } = useHospital();
   const [formData, setFormData] = useState({
@@ -249,7 +119,7 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl shadow-2xl p-8 space-y-6 transition-all">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-xl shadow-2xl p-8 space-y-6 transition-all border border-slate-200 dark:border-slate-800">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Admit New Patient</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

@@ -6,7 +6,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  password?: string; // In a real app, this would be hashed on server
+  password?: string;
 }
 
 export type PatientStatus = 'Stable' | 'Critical' | 'Discharged' | 'In Treatment';
@@ -50,4 +50,13 @@ export interface Doctor {
   experience: string;
   availability: string;
   image: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  time: string;
+  type: 'appointment' | 'patient' | 'system';
+  read: boolean;
 }
