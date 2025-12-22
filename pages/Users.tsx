@@ -1,180 +1,129 @@
 
 import React, { useState } from 'react';
 import { useHospital } from '../HospitalContext';
-import { User, UserRole } from '../types';
-
-const EditUserModal = ({ user, onClose }: { user: User, onClose: () => void }) => {
-  const { updateUser } = useHospital();
-  const [formData, setFormData] = useState({
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    password: user.password || 'password123'
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateUser(user.id, formData);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6">
-        <h2 className="text-2xl font-bold text-slate-800">Edit System User</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 uppercase">Account Name</label>
-            <input required className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 uppercase">Email</label>
-            <input required type="email" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">Password</label>
-              <input required type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">System Role</label>
-              <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})}>
-                <option value="admin">Admin</option>
-                <option value="doctor">Doctor</option>
-                <option value="patient">Patient</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 py-3 rounded-xl font-bold text-slate-500">Cancel</button>
-            <button type="submit" className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-white shadow-lg shadow-blue-200">Update Account</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+import { User, Patient, Doctor, Appointment } from '../types';
 
 const Users = () => {
-  const { users, deleteUser, currentUser } = useHospital();
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const { users, patients, doctors, appointments, resetData } = useHospital();
+  const [activeTab, setActiveTab] = useState<'users' | 'patients' | 'doctors' | 'appointments' | 'migration'>('users');
 
-  const handleDelete = (user: User) => {
-    if (user.id === currentUser?.id) {
-      alert("You cannot delete your own admin account while logged in.");
-      return;
+  const getTableData = () => {
+    switch(activeTab) {
+      case 'users': return users;
+      case 'patients': return patients;
+      case 'doctors': return doctors;
+      case 'appointments': return appointments;
+      default: return [];
     }
-    if (confirm(`CAUTION: Deleting user ${user.name} will remove their access to the system. Proceed?`)) {
-      deleteUser(user.id);
-    }
+  };
+
+  const exportDB = () => {
+    const data = {
+      version: 'v8-secure',
+      exportedAt: new Date().toISOString(),
+      database: { users, patients, doctors, appointments }
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `healsync_db_export_${Date.now()}.json`;
+    a.click();
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">System "Backend" Control</h1>
-          <p className="text-slate-500">Manage raw authentication records and system access levels.</p>
+          <h1 className="text-2xl font-bold text-slate-800">System Database Explorer</h1>
+          <p className="text-slate-500">Full Relational View of the HealSync "Backend" Store.</p>
+        </div>
+        <div className="flex space-x-3">
+          <button 
+            onClick={exportDB}
+            className="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold flex items-center space-x-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            <span>Export SQL/JSON</span>
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 flex items-center space-x-4">
-          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Accounts</p>
-            <p className="text-2xl font-bold text-slate-800">{users.length}</p>
-          </div>
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+        <div className="flex border-b border-slate-100 bg-slate-50/50 p-2">
+          {['users', 'patients', 'doctors', 'appointments', 'migration'].map((tab) => (
+            <button 
+              key={tab}
+              onClick={() => setActiveTab(tab as any)}
+              className={`px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all ${
+                activeTab === tab ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {tab}_table
+            </button>
+          ))}
         </div>
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 flex items-center space-x-4">
-          <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Database Store</p>
-            <p className="text-2xl font-bold text-slate-800 uppercase tracking-tighter">LocalStorage</p>
-          </div>
-        </div>
-        <div className="bg-slate-900 p-6 rounded-3xl text-white flex items-center space-x-4">
-           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Engine</p>
-            <p className="text-2xl font-bold">React Context</p>
-          </div>
+
+        <div className="p-8">
+          {activeTab === 'migration' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold text-slate-800">Production Migration Guide</h3>
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                    <h4 className="font-bold text-blue-800 text-sm mb-1">Step 1: Choose a Stack</h4>
+                    <p className="text-xs text-blue-600 leading-relaxed">
+                      This frontend is designed to consume a JSON REST API. You can host a <strong>Node.js (Express)</strong> or <strong>Python (FastAPI)</strong> backend on <strong>Heroku, Vercel, or AWS</strong>.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                    <h4 className="font-bold text-indigo-800 text-sm mb-1">Step 2: Database Setup</h4>
+                    <p className="text-xs text-indigo-600 leading-relaxed">
+                      Use <strong>PostgreSQL</strong> (Relational) or <strong>MongoDB</strong> (Document). Our schema (see JSON tabs) is compatible with both. Map our "id" fields to your primary keys.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
+                    <h4 className="font-bold text-rose-800 text-sm mb-1">Step 3: Security</h4>
+                    <p className="text-xs text-rose-600 leading-relaxed">
+                      Currently using <code>SHA-256</code> client-side hashing. In production, use <strong>BCrypt</strong> with a salt on the server-side and issue <strong>JWT (JSON Web Tokens)</strong> for session management.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-slate-900 rounded-3xl p-8 text-white">
+                <h3 className="text-lg font-bold mb-4 text-emerald-400">Sample API Route (Node.js)</h3>
+                <pre className="text-[10px] font-mono leading-relaxed text-slate-300 overflow-x-auto">
+{`app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  const user = await db.users.findOne({ email });
+  
+  if (user && await bcrypt.compare(password, user.hash)) {
+    const token = jwt.sign({ id: user.id }, SECRET);
+    res.json({ token, user: sanitize(user) });
+  } else {
+    res.status(401).send('Invalid Credentials');
+  }
+});`}
+                </pre>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h3 className="font-bold text-slate-400 text-xs uppercase tracking-tighter">
+                  Showing raw query result: SELECT * FROM {activeTab}_table
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded">200 OK</span>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 overflow-x-auto max-h-[500px]">
+                <pre className="text-xs font-mono text-slate-600 whitespace-pre">
+                  {JSON.stringify(getTableData(), null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">User ID</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Name & Email</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Role</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Raw Password</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map(user => (
-                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-[10px] text-slate-400">{user.id}</td>
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-slate-800">{user.name}</p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest ${
-                      user.role === 'admin' ? 'bg-amber-100 text-amber-600' :
-                      user.role === 'doctor' ? 'bg-indigo-100 text-indigo-600' :
-                      'bg-emerald-100 text-emerald-600'
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-slate-100 px-2 py-1 rounded text-xs font-mono text-slate-600">
-                      {user.password}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end space-x-2">
-                      <button onClick={() => setEditingUser(user)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                      </button>
-                      <button onClick={() => handleDelete(user)} className="p-2 text-slate-400 hover:text-rose-600 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="bg-blue-600 rounded-[2.5rem] p-10 text-white relative overflow-hidden">
-        <div className="relative z-10">
-          <h2 className="text-2xl font-bold mb-4">Under the Hood</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-blue-100 leading-relaxed">
-            <p>
-              This backend is powered by <strong>Local Persistence Hooks</strong>. When you update a user or profile, the app performs an atomic state update and serializes the entire database to the browser's <code>localStorage</code>. 
-            </p>
-            <p>
-              In a production environment, these Context methods would be replaced by <code>fetch()</code> or <code>axios</code> calls to a REST/GraphQL API on a Node.js server, but the UI and logic would remain identical.
-            </p>
-          </div>
-        </div>
-        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-      </div>
-
-      {editingUser && <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} />}
     </div>
   );
 };
