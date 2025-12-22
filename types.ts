@@ -1,4 +1,14 @@
 
+export type UserRole = 'admin' | 'doctor' | 'patient';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  password?: string; // In a real app, this would be hashed on server
+}
+
 export type PatientStatus = 'Stable' | 'Critical' | 'Discharged' | 'In Treatment';
 
 export interface Patient {
