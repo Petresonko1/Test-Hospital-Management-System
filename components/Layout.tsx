@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useHospital } from '../HospitalContext';
 
-// Added interface for SidebarItem props and used React.FC to handle React-specific props like 'key'
 interface SidebarItemProps {
   to: string;
   icon: React.ReactNode;
@@ -24,6 +24,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon, label, active }) =>
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
+  const { resetData } = useHospital();
 
   const menuItems = [
     { to: '/', label: 'Dashboard', icon: (
@@ -46,8 +47,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 hidden md:block">
-        <div className="p-6">
+      <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
+        <div className="p-6 flex-1">
           <div className="flex items-center space-x-2 text-blue-600 font-bold text-2xl mb-8">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.628.288a2 2 0 01-1.108.209A2 2 0 019.42 15.42l-1.42-1.42a2 2 0 010-2.828l1.42-1.42a2 2 0 012.828 0l1.42 1.42a2 2 0 010 2.828l-1.42 1.42z" /></svg>
             <span>HealSync</span>
@@ -62,18 +63,21 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ))}
           </nav>
         </div>
-        <div className="absolute bottom-0 w-64 p-6">
+
+        <div className="p-6 space-y-4">
           <div className="bg-slate-900 rounded-2xl p-4 text-white">
-            <p className="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Storage Usage</p>
-            <div className="flex justify-between text-sm mb-1">
-              <span>Cloud Storage</span>
-              <span>85%</span>
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Local Database</p>
             </div>
-            <div className="w-full bg-slate-700 h-1.5 rounded-full">
-              <div className="bg-blue-500 h-1.5 rounded-full w-[85%]"></div>
-            </div>
-            <button className="w-full mt-4 text-xs font-semibold bg-white/10 hover:bg-white/20 py-2 rounded-lg transition-colors">
-              Upgrade Plan
+            <p className="text-xs text-slate-300">Your data is being synced to LocalStorage.</p>
+            <button 
+              onClick={() => {
+                if(confirm('Are you sure you want to reset all data to factory defaults?')) resetData();
+              }}
+              className="w-full mt-4 text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors uppercase tracking-widest text-left"
+            >
+              Reset System Data
             </button>
           </div>
         </div>
