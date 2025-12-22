@@ -94,22 +94,22 @@ const EditDoctorModal = ({ doctor, onClose }: { doctor: Doctor, onClose: () => v
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6 border border-slate-200 dark:border-slate-800">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Edit Doctor Profile</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6 border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Edit Doctor Profile</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 uppercase">Doctor Name</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Doctor Name</label>
             <input 
               required 
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" 
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200 text-sm" 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})} 
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">Specialty</label>
-              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-slate-200" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})}>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Specialty</label>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-slate-200 text-sm" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})}>
                 <option value="General Physician">General Physician</option>
                 <option value="Cardiologist">Cardiologist</option>
                 <option value="Neurologist">Neurologist</option>
@@ -119,17 +119,17 @@ const EditDoctorModal = ({ doctor, onClose }: { doctor: Doctor, onClose: () => v
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">Experience</label>
-              <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Experience</label>
+              <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200 text-sm" value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 uppercase">Availability</label>
-            <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.availability} onChange={e => setFormData({...formData, availability: e.target.value})} />
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Availability</label>
+            <input required className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200 text-sm" value={formData.availability} onChange={e => setFormData({...formData, availability: e.target.value})} />
           </div>
-          <div className="flex space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-slate-500 dark:text-slate-400 transition-colors text-sm">Cancel</button>
-            <button type="submit" className="flex-1 bg-indigo-600 py-3 rounded-xl font-bold text-white shadow-lg shadow-indigo-200 dark:shadow-none text-sm">Save Changes</button>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-slate-500 dark:text-slate-400 text-sm">Cancel</button>
+            <button type="submit" className="flex-1 bg-indigo-600 py-3 rounded-xl font-bold text-white text-sm shadow-lg shadow-indigo-200 dark:shadow-none">Save Changes</button>
           </div>
         </form>
       </div>
@@ -156,23 +156,23 @@ const AddDoctorModal = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6 border border-slate-200 dark:border-slate-800">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Register New Doctor</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-6 border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Register New Doctor</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 uppercase">Doctor Name</label>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Doctor Name</label>
             <input 
               required 
               placeholder="Dr. Jane Doe" 
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" 
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200 text-sm" 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})} 
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">Specialty</label>
-              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-slate-200" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})}>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Specialty</label>
+              <select className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 dark:text-slate-200 text-sm" value={formData.specialty} onChange={e => setFormData({...formData, specialty: e.target.value})}>
                 <option value="General Physician">General Physician</option>
                 <option value="Cardiologist">Cardiologist</option>
                 <option value="Neurologist">Neurologist</option>
@@ -182,17 +182,17 @@ const AddDoctorModal = ({ onClose }: { onClose: () => void }) => {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">Experience</label>
-              <input required placeholder="e.g. 10 Years" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Experience</label>
+              <input required placeholder="e.g. 10 Years" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200 text-sm" value={formData.experience} onChange={e => setFormData({...formData, experience: e.target.value})} />
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 uppercase">Availability</label>
-            <input required placeholder="Mon, Wed, Fri" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200" value={formData.availability} onChange={e => setFormData({...formData, availability: e.target.value})} />
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Availability</label>
+            <input required placeholder="Mon, Wed, Fri" className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 outline-none dark:text-slate-200 text-sm" value={formData.availability} onChange={e => setFormData({...formData, availability: e.target.value})} />
           </div>
-          <div className="flex space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-slate-500 dark:text-slate-400 transition-colors text-sm">Cancel</button>
-            <button type="submit" className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-white hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 dark:shadow-none text-sm">Add Staff</button>
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 dark:bg-slate-800 py-3 rounded-xl font-bold text-slate-500 dark:text-slate-400 text-sm">Cancel</button>
+            <button type="submit" className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-white text-sm shadow-lg shadow-blue-200 dark:shadow-none">Add Staff</button>
           </div>
         </form>
       </div>
@@ -220,26 +220,33 @@ const Doctors = () => {
           <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Directory of specialized clinical experts.</p>
         </div>
         {currentUser?.role === 'admin' && (
-          <button onClick={() => setIsAdding(true)} className="w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-blue-200 active:scale-95 transition-all">+ Register Staff</button>
+          <button 
+            onClick={() => setIsAdding(true)} 
+            className="w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-blue-200 dark:shadow-none active:scale-95 transition-all"
+          >
+            + Register Staff
+          </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {doctors.map((doctor) => (
-          <div key={doctor.id} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 p-6 md:p-8 flex flex-col items-center text-center group relative shadow-sm">
+          <div key={doctor.id} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 p-6 md:p-8 flex flex-col items-center text-center group relative shadow-sm hover:shadow-md transition-shadow">
             {currentUser?.role === 'admin' && (
-              <div className="absolute top-4 right-4 flex space-x-1 opacity-0 group-hover:opacity-100 transition-all">
+              <div className="absolute top-4 right-4 flex space-x-1 z-10">
                 <button 
                   onClick={(e) => { e.stopPropagation(); setEditingDoctor(doctor); }} 
-                  className="p-2 text-amber-500 rounded-full hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
+                  className="p-2 text-amber-500 rounded-full bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all border border-amber-100 dark:border-amber-900/40 shadow-sm"
                   title="Edit Doctor"
+                  aria-label="Edit Doctor"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleDelete(doctor.id, doctor.name); }} 
-                  className="p-2 text-rose-500 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all"
+                  className="p-2 text-rose-500 rounded-full bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-rose-100 dark:border-rose-900/40 shadow-sm"
                   title="Remove Doctor"
+                  aria-label="Remove Doctor"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
@@ -260,7 +267,12 @@ const Doctors = () => {
               </div>
             </div>
 
-            <button onClick={() => setSelectedDoctorProfile(doctor)} className="w-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all">Profile</button>
+            <button 
+              onClick={() => setSelectedDoctorProfile(doctor)} 
+              className="w-full bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-all shadow-sm"
+            >
+              Profile
+            </button>
           </div>
         ))}
       </div>
