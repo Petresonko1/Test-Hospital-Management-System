@@ -38,7 +38,7 @@ const PatientDetailsModal = ({ patient, onClose }: { patient: Patient, onClose: 
               <p className="text-sm text-slate-500">ID: {patient.id} • {patient.age}y • {patient.gender}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-2">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -70,7 +70,7 @@ const PatientDetailsModal = ({ patient, onClose }: { patient: Patient, onClose: 
             <section>
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Main Condition</h4>
               <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100 italic">
-                "{patient.condition}"
+                "{patient.condition || 'No description provided'}"
               </p>
             </section>
 
@@ -107,7 +107,7 @@ const PatientDetailsModal = ({ patient, onClose }: { patient: Patient, onClose: 
                   <div className="bg-rose-50/50 p-6 rounded-2xl border border-rose-100">
                     <h4 className="text-rose-800 font-bold mb-3 text-sm">Potential Risks</h4>
                     <ul className="space-y-2">
-                      {insights.risks.map((risk: string, i: number) => (
+                      {insights.risks?.map((risk: string, i: number) => (
                         <li key={i} className="text-xs text-rose-700 flex items-start">
                           <span className="mr-2">•</span> {risk}
                         </li>
@@ -117,7 +117,7 @@ const PatientDetailsModal = ({ patient, onClose }: { patient: Patient, onClose: 
                   <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
                     <h4 className="text-emerald-800 font-bold mb-3 text-sm">Dietary Plan</h4>
                     <ul className="space-y-2">
-                      {insights.dietPlan.map((item: string, i: number) => (
+                      {insights.dietPlan?.map((item: string, i: number) => (
                         <li key={i} className="text-xs text-emerald-700 flex items-start">
                           <span className="mr-2">•</span> {item}
                         </li>
@@ -138,20 +138,22 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
   const { addPatient, doctors } = useHospital();
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
-    gender: 'Male' as any,
+    age: '30',
+    gender: 'Male' as const,
     bloodGroup: 'O+',
-    status: 'Stable' as any,
+    status: 'Stable' as const,
     condition: '',
-    doctor: doctors[0]?.name || 'N/A',
+    doctor: doctors[0]?.name || 'Unassigned',
     room: '101A'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) return;
+    
     addPatient({
       ...formData,
-      age: parseInt(formData.age),
+      age: parseInt(formData.age) || 0,
       admissionDate: new Date().toISOString().split('T')[0]
     });
     onClose();
@@ -165,26 +167,37 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-400 uppercase">Full Name</label>
-              <input required className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500/20" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input 
+                required 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500/20" 
+                value={formData.name} 
+                onChange={e => setFormData({...formData, name: e.target.value})} 
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-400 uppercase">Age</label>
-              <input required type="number" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} />
+              <input 
+                required 
+                type="number" 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" 
+                value={formData.age} 
+                onChange={e => setFormData({...formData, age: e.target.value})} 
+              />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-400 uppercase">Gender</label>
               <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as any})}>
-                <option>Male</option>
-                <option>Female</option>
-                <option>Other</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
               </select>
             </div>
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-400 uppercase">Doctor</label>
               <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.doctor} onChange={e => setFormData({...formData, doctor: e.target.value})}>
-                {doctors.map(d => <option key={d.id}>{d.name}</option>)}
+                {doctors.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
               </select>
             </div>
           </div>
@@ -203,7 +216,7 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 const Patients = () => {
-  const { patients, deletePatient } = useHospital();
+  const { patients, deletePatient, currentUser } = useHospital();
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -220,86 +233,97 @@ const Patients = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Patient Directory</h1>
           <p className="text-slate-500">Manage and view detailed medical records of your patients.</p>
         </div>
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-        >
-          + Admit New Patient
-        </button>
+        {(currentUser?.role === 'admin' || currentUser?.role === 'doctor') && (
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95"
+          >
+            + Admit New Patient
+          </button>
+        )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="p-4 border-b border-slate-100 flex items-center bg-slate-50/50">
           <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-lg border border-slate-200 w-full max-w-md">
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             <input 
               type="text" 
               placeholder="Search by name or ID..." 
-              className="bg-transparent border-none outline-none text-sm w-full"
+              className="bg-transparent border-none outline-none text-sm w-full font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-slate-400 text-xs uppercase tracking-widest bg-slate-50/50">
-              <th className="px-6 py-4 font-bold">Patient</th>
-              <th className="px-6 py-4 font-bold">Age/Sex</th>
-              <th className="px-6 py-4 font-bold">Status</th>
-              <th className="px-6 py-4 font-bold">Doctor</th>
-              <th className="px-6 py-4 font-bold">Room</th>
-              <th className="px-6 py-4 font-bold">Admission</th>
-              <th className="px-6 py-4 font-bold text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredPatients.map((patient) => (
-              <tr key={patient.id} className="hover:bg-slate-50/50 transition-colors group">
-                <td className="px-6 py-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
-                      {patient.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{patient.name}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">ID: {patient.id}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">{patient.age} / {patient.gender.charAt(0)}</td>
-                <td className="px-6 py-4">
-                  <StatusBadge status={patient.status} />
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-slate-600">{patient.doctor}</td>
-                <td className="px-6 py-4 text-sm text-slate-600">{patient.room}</td>
-                <td className="px-6 py-4 text-sm text-slate-600">{patient.admissionDate}</td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center space-x-4">
-                    <button 
-                      onClick={() => setSelectedPatient(patient)}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-bold"
-                    >
-                      View
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(patient.id, patient.name)}
-                      className="text-rose-400 hover:text-rose-600 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[800px]">
+            <thead>
+              <tr className="text-slate-400 text-xs uppercase tracking-widest bg-slate-50/50">
+                <th className="px-6 py-4 font-bold">Patient</th>
+                <th className="px-6 py-4 font-bold">Age/Sex</th>
+                <th className="px-6 py-4 font-bold">Status</th>
+                <th className="px-6 py-4 font-bold">Doctor</th>
+                <th className="px-6 py-4 font-bold">Room</th>
+                <th className="px-6 py-4 font-bold text-center">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredPatients.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">No patients found.</td>
+                </tr>
+              ) : (
+                filteredPatients.map((patient) => (
+                  <tr key={patient.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm">
+                          {patient.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{patient.name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">ID: {patient.id}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600 font-medium">{patient.age} / {patient.gender.charAt(0)}</td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={patient.status} />
+                    </td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-600">{patient.doctor}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600 font-mono">{patient.room}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-center space-x-4">
+                        <button 
+                          onClick={() => setSelectedPatient(patient)}
+                          className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-lg text-sm font-bold transition-all"
+                        >
+                          View
+                        </button>
+                        {(currentUser?.role === 'admin' || currentUser?.role === 'doctor') && (
+                          <button 
+                            onClick={() => handleDelete(patient.id, patient.name)}
+                            className="text-slate-300 hover:text-rose-500 transition-all p-2 rounded-lg hover:bg-rose-50"
+                            title="Delete Patient"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {selectedPatient && (
