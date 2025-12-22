@@ -143,7 +143,7 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
     bloodGroup: 'O+',
     status: 'Stable' as any,
     condition: '',
-    doctor: doctors[0].name,
+    doctor: doctors[0]?.name || 'N/A',
     room: '101A'
   });
 
@@ -203,7 +203,7 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 const Patients = () => {
-  const { patients } = useHospital();
+  const { patients, deletePatient } = useHospital();
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -212,6 +212,12 @@ const Patients = () => {
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete ${name}? All associated appointments will also be removed.`)) {
+      deletePatient(id);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -250,7 +256,7 @@ const Patients = () => {
               <th className="px-6 py-4 font-bold">Doctor</th>
               <th className="px-6 py-4 font-bold">Room</th>
               <th className="px-6 py-4 font-bold">Admission</th>
-              <th className="px-6 py-4 font-bold">Action</th>
+              <th className="px-6 py-4 font-bold text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -275,12 +281,20 @@ const Patients = () => {
                 <td className="px-6 py-4 text-sm text-slate-600">{patient.room}</td>
                 <td className="px-6 py-4 text-sm text-slate-600">{patient.admissionDate}</td>
                 <td className="px-6 py-4">
-                  <button 
-                    onClick={() => setSelectedPatient(patient)}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    View Details
-                  </button>
+                  <div className="flex items-center justify-center space-x-4">
+                    <button 
+                      onClick={() => setSelectedPatient(patient)}
+                      className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                    >
+                      View
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(patient.id, patient.name)}
+                      className="text-rose-400 hover:text-rose-600 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

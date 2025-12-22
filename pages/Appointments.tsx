@@ -75,9 +75,15 @@ const BookAppointmentModal = ({ onClose }: { onClose: () => void }) => {
 };
 
 const Appointments = () => {
-  const { appointments } = useHospital();
+  const { appointments, deleteAppointment } = useHospital();
   const [filter, setFilter] = useState('All');
   const [isBooking, setIsBooking] = useState(false);
+
+  const handleDelete = (id: string) => {
+    if(confirm('Cancel this appointment?')) {
+      deleteAppointment(id);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -117,7 +123,7 @@ const Appointments = () => {
             </div>
           ) : (
             appointments.map((app) => (
-              <div key={app.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center justify-between hover:border-blue-200 transition-all cursor-pointer">
+              <div key={app.id} className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center justify-between hover:border-blue-200 transition-all group">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -127,19 +133,22 @@ const Appointments = () => {
                     <p className="text-xs text-slate-400 font-medium">Visiting {app.doctorName} • {app.department}</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-12">
+                <div className="flex items-center space-x-8">
                   <div className="text-center">
                     <p className="text-sm font-bold text-slate-800">{app.time}</p>
                     <p className="text-[10px] text-slate-400 font-bold uppercase">{app.date}</p>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-4">
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       app.status === 'Scheduled' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
                     }`}>
                       {app.status}
                     </span>
-                    <button className="text-slate-400 hover:text-slate-600">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" /></svg>
+                    <button 
+                      onClick={() => handleDelete(app.id)}
+                      className="text-slate-300 hover:text-rose-500 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   </div>
                 </div>

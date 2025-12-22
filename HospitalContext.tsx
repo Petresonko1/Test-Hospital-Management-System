@@ -8,7 +8,11 @@ interface HospitalContextType {
   appointments: Appointment[];
   doctors: Doctor[];
   addPatient: (patient: Omit<Patient, 'id' | 'history'>) => void;
+  deletePatient: (id: string) => void;
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
+  deleteAppointment: (id: string) => void;
+  addDoctor: (doctor: Omit<Doctor, 'id'>) => void;
+  deleteDoctor: (id: string) => void;
   updatePatientStatus: (id: string, status: Patient['status']) => void;
   resetData: () => void;
 }
@@ -16,12 +20,12 @@ interface HospitalContextType {
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  PATIENTS: 'healsync_patients',
-  APPOINTMENTS: 'healsync_appointments',
+  PATIENTS: 'healsync_patients_v2',
+  APPOINTMENTS: 'healsync_appointments_v2',
+  DOCTORS: 'healsync_doctors_v2'
 };
 
 export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize state from LocalStorage or fallback to MOCK data
   const [patients, setPatients] = useState<Patient[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.PATIENTS);
     return saved ? JSON.parse(saved) : MOCK_PATIENTS;
@@ -32,9 +36,11 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     return saved ? JSON.parse(saved) : MOCK_APPOINTMENTS;
   });
 
-  const [doctors] = useState<Doctor[]>(MOCK_DOCTORS);
+  const [doctors, setDoctors] = useState<Doctor[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.DOCTORS);
+    return saved ? JSON.parse(saved) : MOCK_DOCTORS;
+  });
 
-  // Persist to LocalStorage whenever state changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PATIENTS, JSON.stringify(patients));
   }, [patients]);
@@ -43,13 +49,23 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appointments));
   }, [appointments]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.DOCTORS, JSON.stringify(doctors));
+  }, [doctors]);
+
   const addPatient = (newPatient: Omit<Patient, 'id' | 'history'>) => {
     const patient: Patient = {
       ...newPatient,
-      id: `P${Math.floor(1000 + Math.random() * 9000)}`, // Robust ID generation
+      id: `P${Math.floor(1000 + Math.random() * 9000)}`,
       history: []
     };
     setPatients(prev => [...prev, patient]);
+  };
+
+  const deletePatient = (id: string) => {
+    setPatients(prev => prev.filter(p => p.id !== id));
+    // Cascade delete appointments for this patient
+    setAppointments(prev => prev.filter(a => a.patientId !== id));
   };
 
   const addAppointment = (newApp: Omit<Appointment, 'id'>) => {
@@ -60,6 +76,22 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     setAppointments(prev => [...prev, appointment]);
   };
 
+  const deleteAppointment = (id: string) => {
+    setAppointments(prev => prev.filter(a => a.id !== id));
+  };
+
+  const addDoctor = (newDoc: Omit<Doctor, 'id'>) => {
+    const doctor: Doctor = {
+      ...newDoc,
+      id: `D${Math.floor(1000 + Math.random() * 9000)}`
+    };
+    setDoctors(prev => [...prev, doctor]);
+  };
+
+  const deleteDoctor = (id: string) => {
+    setDoctors(prev => prev.filter(d => d.id !== id));
+  };
+
   const updatePatientStatus = (id: string, status: Patient['status']) => {
     setPatients(prev => prev.map(p => p.id === id ? { ...p, status } : p));
   };
@@ -67,19 +99,17 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   const resetData = () => {
     setPatients(MOCK_PATIENTS);
     setAppointments(MOCK_APPOINTMENTS);
-    localStorage.removeItem(STORAGE_KEYS.PATIENTS);
-    localStorage.removeItem(STORAGE_KEYS.APPOINTMENTS);
+    setDoctors(MOCK_DOCTORS);
+    localStorage.clear();
   };
 
   return (
     <HospitalContext.Provider value={{ 
-      patients, 
-      appointments, 
-      doctors, 
-      addPatient, 
-      addAppointment, 
-      updatePatientStatus,
-      resetData
+      patients, appointments, doctors, 
+      addPatient, deletePatient, 
+      addAppointment, deleteAppointment,
+      addDoctor, deleteDoctor,
+      updatePatientStatus, resetData 
     }}>
       {children}
     </HospitalContext.Provider>
