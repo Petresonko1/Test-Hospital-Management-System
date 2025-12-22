@@ -97,7 +97,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
         age: payload.age || 0,
         gender: payload.gender || 'Other',
         bloodGroup: payload.bloodGroup || 'O+',
-        status: 'Stable',
+        status: payload.status || 'Stable',
         room: 'Unassigned',
         admissionDate: new Date().toISOString().split('T')[0],
         condition: 'Newly Registered',

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useHospital } from '../HospitalContext';
-import { UserRole } from '../types';
+import { UserRole, PatientStatus } from '../types';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +14,7 @@ const Register = () => {
     age: '25',
     gender: 'Male' as 'Male' | 'Female' | 'Other',
     bloodGroup: 'O+',
+    status: 'Stable' as PatientStatus,
     specialty: 'General Physician',
     experience: '5 Years'
   });
@@ -94,7 +95,7 @@ const Register = () => {
           {formData.role === 'patient' && (
             <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
               <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">Medical Information</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Age</label>
                   <input type="number" className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} />
@@ -107,11 +108,22 @@ const Register = () => {
                     <option>Other</option>
                   </select>
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Blood Group</label>
                   <select className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none" value={formData.bloodGroup} onChange={e => setFormData({...formData, bloodGroup: e.target.value})}>
                     <option>O+</option><option>O-</option><option>A+</option><option>A-</option>
                     <option>B+</option><option>B-</option><option>AB+</option><option>AB-</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Clinical Status</label>
+                  <select className="w-full bg-white border border-slate-200 rounded-xl p-3 outline-none font-bold text-slate-700" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as PatientStatus})}>
+                    <option value="Stable">Stable</option>
+                    <option value="In Treatment">In Treatment</option>
+                    <option value="Critical">Critical</option>
+                    <option value="Discharged">Discharged</option>
                   </select>
                 </div>
               </div>

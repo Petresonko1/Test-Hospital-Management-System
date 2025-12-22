@@ -13,6 +13,8 @@ const data = [
   { name: 'Sun', patients: 15 },
 ];
 
+const TOTAL_BED_CAPACITY = 150; // Total capacity of the hospital
+
 const StatCard = ({ label, value, trend, trendUp, icon }: { label: string, value: string | number, trend: string, trendUp: boolean, icon: React.ReactNode }) => (
   <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
     <div className="flex justify-between items-start mb-4">
@@ -30,6 +32,10 @@ const StatCard = ({ label, value, trend, trendUp, icon }: { label: string, value
 
 const Dashboard = () => {
   const { patients, appointments } = useHospital();
+
+  // Dynamic calculation: Only count patients who aren't "Discharged"
+  const admittedPatients = patients.filter(p => p.status !== 'Discharged').length;
+  const occupancyRate = Math.round((admittedPatients / TOTAL_BED_CAPACITY) * 100);
 
   return (
     <div className="space-y-8">
@@ -55,9 +61,9 @@ const Dashboard = () => {
         />
         <StatCard 
           label="Bed Occupancy" 
-          value="78%" 
-          trend="2.4%" 
-          trendUp={false} 
+          value={`${occupancyRate}%`} 
+          trend={`${admittedPatients}/${TOTAL_BED_CAPACITY}`} 
+          trendUp={occupancyRate < 90} 
           icon={<svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
         />
         <StatCard 

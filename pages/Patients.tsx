@@ -229,7 +229,7 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
     age: '30',
     gender: 'Male' as const,
     bloodGroup: 'O+',
-    status: 'Stable' as const,
+    status: 'Stable' as PatientStatus,
     condition: '',
     doctor: doctors[0]?.name || 'Unassigned',
     room: '101A'
@@ -283,10 +283,25 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
               </select>
             </div>
             <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Clinical Status</label>
+              <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 font-bold text-blue-600" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as PatientStatus})}>
+                <option value="Stable">Stable</option>
+                <option value="In Treatment">In Treatment</option>
+                <option value="Critical">Critical</option>
+                <option value="Discharged">Discharged</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
               <label className="text-xs font-bold text-slate-400 uppercase">Doctor</label>
               <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.doctor} onChange={e => setFormData({...formData, doctor: e.target.value})}>
                 {doctors.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
               </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Room</label>
+              <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} />
             </div>
           </div>
           <div className="space-y-1">
