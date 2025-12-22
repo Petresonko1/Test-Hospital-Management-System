@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Patient, Appointment, Doctor, User, UserRole } from './types';
+import { Patient, Appointment, Doctor, User } from './types';
 import { VirtualDB } from './BackendEngine';
 
 interface HospitalContextType {
@@ -28,14 +28,6 @@ interface HospitalContextType {
 
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  USERS: 'healsync_users_v8-secure',
-  AUTH: 'healsync_auth_v8-secure',
-  PATIENTS: 'healsync_patients_v8-secure',
-  APPOINTMENTS: 'healsync_appointments_v8-secure',
-  DOCTORS: 'healsync_doctors_v8-secure'
-};
-
 export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -47,71 +39,73 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     const init = async () => {
       await VirtualDB.initialize();
-      setUsers(VirtualDB.getTable(STORAGE_KEYS.USERS));
-      setPatients(VirtualDB.getTable(STORAGE_KEYS.PATIENTS));
-      setAppointments(VirtualDB.getTable(STORAGE_KEYS.APPOINTMENTS));
-      setDoctors(VirtualDB.getTable(STORAGE_KEYS.DOCTORS));
+      const usersRes = await VirtualDB.get<User[]>('/api/users');
+      const patientsRes = await VirtualDB.get<Patient[]>('/api/patients');
+      const appointmentsRes = await VirtualDB.get<Appointment[]>('/api/appointments');
+      const doctorsRes = await VirtualDB.get<Doctor[]>('/api/doctors');
       
-      const savedAuth = localStorage.getItem(STORAGE_KEYS.AUTH);
+      setUsers(usersRes.data || []);
+      setPatients(patientsRes.data || []);
+      setAppointments(appointmentsRes.data || []);
+      setDoctors(doctorsRes.data || []);
+      
+      const savedAuth = localStorage.getItem('hs_auth_session');
       if (savedAuth) setCurrentUser(JSON.parse(savedAuth));
       setInitialized(true);
     };
     init();
   }, []);
 
-  useEffect(() => {
-    if (!initialized) return;
-    VirtualDB.saveTable(STORAGE_KEYS.USERS, users);
-    VirtualDB.saveTable(STORAGE_KEYS.PATIENTS, patients);
-    VirtualDB.saveTable(STORAGE_KEYS.APPOINTMENTS, appointments);
-    VirtualDB.saveTable(STORAGE_KEYS.DOCTORS, doctors);
-    localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(currentUser));
-  }, [users, currentUser, patients, appointments, doctors, initialized]);
-
   const login = async (email: string, password: string) => {
-    const user = await VirtualDB.authenticate(email, password);
-    if (user) {
-      setCurrentUser(user);
+    const res = await VirtualDB.post<any>('/api/auth/login', { email, password });
+    if (res.status === 200 && res.data) {
+      setCurrentUser(res.data.user);
+      localStorage.setItem('hs_auth_session', JSON.stringify(res.data.user));
       return true;
     }
     return false;
   };
 
   const register = async (payload: any) => {
-    const newUser = await VirtualDB.registerUser(payload);
-    
-    if (payload.role === 'doctor') {
-      const newDoc: Doctor = {
-        id: `D${Math.floor(1000 + Math.random() * 9000)}`,
-        name: payload.name,
-        specialty: payload.specialty || 'General Physician',
-        experience: payload.experience || '1 Year',
-        availability: 'Mon - Fri',
-        image: `https://picsum.photos/seed/${newUser.id}/200/200`
-      };
-      setDoctors(prev => [...prev, newDoc]);
-    } else if (payload.role === 'patient') {
-      const newPatient: Patient = {
-        id: `P${Math.floor(1000 + Math.random() * 9000)}`,
-        name: payload.name,
-        age: payload.age || 0,
-        gender: payload.gender || 'Other',
-        bloodGroup: payload.bloodGroup || 'O+',
-        status: payload.status || 'Stable',
-        room: 'Unassigned',
-        admissionDate: new Date().toISOString().split('T')[0],
-        condition: 'Newly Registered',
-        doctor: 'Unassigned',
-        history: []
-      };
-      setPatients(prev => [...prev, newPatient]);
+    const res = await VirtualDB.post<User>('/api/auth/register', payload);
+    if (res.status === 200 && res.data) {
+      const newUser = res.data;
+      if (payload.role === 'doctor') {
+        const newDoc: Doctor = {
+          id: `D${Math.floor(1000 + Math.random() * 9000)}`,
+          name: payload.name,
+          specialty: payload.specialty || 'General Physician',
+          experience: payload.experience || '1 Year',
+          availability: 'Mon - Fri',
+          image: `https://picsum.photos/seed/${newUser.id}/200/200`
+        };
+        setDoctors(prev => [...prev, newDoc]);
+      } else if (payload.role === 'patient') {
+        const newPatient: Patient = {
+          id: `P${Math.floor(1000 + Math.random() * 9000)}`,
+          name: payload.name,
+          age: payload.age || 0,
+          gender: payload.gender || 'Other',
+          bloodGroup: payload.bloodGroup || 'O+',
+          status: payload.status || 'Stable',
+          room: 'Unassigned',
+          admissionDate: new Date().toISOString().split('T')[0],
+          condition: 'Newly Registered',
+          doctor: 'Unassigned',
+          history: []
+        };
+        setPatients(prev => [...prev, newPatient]);
+      }
+      setUsers(prev => [...prev, newUser]);
+      setCurrentUser(newUser);
+      localStorage.setItem('hs_auth_session', JSON.stringify(newUser));
     }
-    
-    setUsers(prev => [...prev, newUser]);
-    setCurrentUser(newUser);
   };
 
-  const logout = () => setCurrentUser(null);
+  const logout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('hs_auth_session');
+  };
 
   const updateUser = (id: string, updates: Partial<User>) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
@@ -133,13 +127,8 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const deletePatient = (id: string) => {
-    const patient = patients.find(p => p.id === id);
     setPatients(prev => prev.filter(p => p.id !== id));
     setAppointments(prev => prev.filter(a => a.patientId !== id));
-    if (patient) {
-      const linkedUser = users.find(u => u.name === patient.name);
-      if (linkedUser) deleteUser(linkedUser.id);
-    }
   };
 
   const addAppointment = (newApp: Omit<Appointment, 'id'>) => {
@@ -158,14 +147,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
-  const deleteDoctor = (id: string) => {
-    const doctor = doctors.find(d => d.id === id);
-    setDoctors(prev => prev.filter(d => d.id !== id));
-    if (doctor) {
-      const linkedUser = users.find(u => u.name === doctor.name);
-      if (linkedUser) deleteUser(linkedUser.id);
-    }
-  };
+  const deleteDoctor = (id: string) => setDoctors(prev => prev.filter(d => d.id !== id));
 
   const updatePatientStatus = (id: string, status: Patient['status']) => {
     setPatients(prev => prev.map(p => p.id === id ? { ...p, status } : p));
