@@ -14,6 +14,94 @@ const StatusBadge = ({ status }: { status: PatientStatus }) => {
   return <span className={`px-3 py-1 rounded-full text-xs font-semibold ${styles[status]}`}>{status}</span>;
 };
 
+const EditPatientModal = ({ patient, onClose }: { patient: Patient, onClose: () => void }) => {
+  const { updatePatient, doctors } = useHospital();
+  const [formData, setFormData] = useState({
+    name: patient.name,
+    age: patient.age.toString(),
+    gender: patient.gender,
+    bloodGroup: patient.bloodGroup,
+    room: patient.room,
+    doctor: patient.doctor,
+    status: patient.status
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updatePatient(patient.id, {
+      ...formData,
+      age: parseInt(formData.age) || 0
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl p-8 space-y-6">
+        <h2 className="text-2xl font-bold text-slate-800">Edit Patient Profile</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Full Name</label>
+              <input 
+                required 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" 
+                value={formData.name} 
+                onChange={e => setFormData({...formData, name: e.target.value})} 
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Age</label>
+              <input 
+                required 
+                type="number" 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none" 
+                value={formData.age} 
+                onChange={e => setFormData({...formData, age: e.target.value})} 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Gender</label>
+              <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as any})}>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Status</label>
+              <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value as any})}>
+                <option value="Stable">Stable</option>
+                <option value="In Treatment">In Treatment</option>
+                <option value="Critical">Critical</option>
+                <option value="Discharged">Discharged</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Room</label>
+              <input className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.room} onChange={e => setFormData({...formData, room: e.target.value})} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-400 uppercase">Doctor</label>
+              <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3" value={formData.doctor} onChange={e => setFormData({...formData, doctor: e.target.value})}>
+                {doctors.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="flex space-x-3 pt-4">
+            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 py-3 rounded-xl font-bold text-slate-500">Cancel</button>
+            <button type="submit" className="flex-1 bg-blue-600 py-3 rounded-xl font-bold text-white shadow-lg shadow-blue-200">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const PatientDetailsModal = ({ patient, onClose }: { patient: Patient, onClose: () => void }) => {
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -218,6 +306,7 @@ const AddPatientModal = ({ onClose }: { onClose: () => void }) => {
 const Patients = () => {
   const { patients, deletePatient, currentUser } = useHospital();
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -270,14 +359,13 @@ const Patients = () => {
                 <th className="px-6 py-4 font-bold">Age/Sex</th>
                 <th className="px-6 py-4 font-bold">Status</th>
                 <th className="px-6 py-4 font-bold">Doctor</th>
-                <th className="px-6 py-4 font-bold">Room</th>
                 <th className="px-6 py-4 font-bold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredPatients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">No patients found.</td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No patients found.</td>
                 </tr>
               ) : (
                 filteredPatients.map((patient) => (
@@ -289,7 +377,7 @@ const Patients = () => {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800">{patient.name}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">ID: {patient.id}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">ID: {patient.id} • Room: {patient.room}</p>
                         </div>
                       </div>
                     </td>
@@ -298,23 +386,30 @@ const Patients = () => {
                       <StatusBadge status={patient.status} />
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-slate-600">{patient.doctor}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600 font-mono">{patient.room}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-center space-x-4">
+                      <div className="flex items-center justify-center space-x-2">
                         <button 
                           onClick={() => setSelectedPatient(patient)}
-                          className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-lg text-sm font-bold transition-all"
+                          className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-100 transition-all"
                         >
                           View
                         </button>
-                        {(currentUser?.role === 'admin' || currentUser?.role === 'doctor') && (
-                          <button 
-                            onClick={() => handleDelete(patient.id, patient.name)}
-                            className="text-slate-300 hover:text-rose-500 transition-all p-2 rounded-lg hover:bg-rose-50"
-                            title="Delete Patient"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
+                        {currentUser?.role === 'admin' && (
+                          <>
+                            <button 
+                              onClick={() => setEditingPatient(patient)}
+                              className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition-all"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(patient.id, patient.name)}
+                              className="bg-rose-50 text-rose-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-100 transition-all"
+                              title="Delete Patient"
+                            >
+                              Delete
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -330,6 +425,13 @@ const Patients = () => {
         <PatientDetailsModal 
           patient={selectedPatient} 
           onClose={() => setSelectedPatient(null)} 
+        />
+      )}
+
+      {editingPatient && (
+        <EditPatientModal 
+          patient={editingPatient}
+          onClose={() => setEditingPatient(null)}
         />
       )}
 

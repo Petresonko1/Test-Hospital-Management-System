@@ -21,10 +21,12 @@ interface HospitalContextType {
   register: (payload: RegisterPayload) => void;
   logout: () => void;
   addPatient: (patient: Omit<Patient, 'id' | 'history'>) => void;
+  updatePatient: (id: string, updates: Partial<Patient>) => void;
   deletePatient: (id: string) => void;
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   deleteAppointment: (id: string) => void;
   addDoctor: (doctor: Omit<Doctor, 'id'>) => void;
+  updateDoctor: (id: string, updates: Partial<Doctor>) => void;
   deleteDoctor: (id: string) => void;
   updatePatientStatus: (id: string, status: Patient['status']) => void;
   resetData: () => void;
@@ -33,11 +35,11 @@ interface HospitalContextType {
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  USERS: 'healsync_users_v5',
-  AUTH: 'healsync_auth_v5',
-  PATIENTS: 'healsync_patients_v5',
-  APPOINTMENTS: 'healsync_appointments_v5',
-  DOCTORS: 'healsync_doctors_v5'
+  USERS: 'healsync_users_v6',
+  AUTH: 'healsync_auth_v6',
+  PATIENTS: 'healsync_patients_v6',
+  APPOINTMENTS: 'healsync_appointments_v6',
+  DOCTORS: 'healsync_doctors_v6'
 };
 
 const DEFAULT_USERS: User[] = [
@@ -81,7 +83,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [users, currentUser, patients, appointments, doctors]);
 
   const login = (email: string, password: string) => {
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    const user = users.find(u => u.email.toLowerCase().trim() === email.toLowerCase().trim() && u.password === password);
     if (user) {
       setCurrentUser(user);
       return true;
@@ -137,6 +139,14 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     setPatients(prev => [...prev, patient]);
   };
 
+  const updatePatient = (id: string, updates: Partial<Patient>) => {
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    // Sync name to appointments if it changed
+    if (updates.name) {
+      setAppointments(prev => prev.map(a => a.patientId === id ? { ...a, patientName: updates.name! } : a));
+    }
+  };
+
   const deletePatient = (id: string) => {
     setPatients(prev => prev.filter(p => p.id !== id));
     setAppointments(prev => prev.filter(a => a.patientId !== id));
@@ -162,6 +172,14 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     setDoctors(prev => [...prev, doctor]);
   };
 
+  const updateDoctor = (id: string, updates: Partial<Doctor>) => {
+    setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+    // Sync name to appointments
+    if (updates.name) {
+      setAppointments(prev => prev.map(a => a.doctorName === (doctors.find(doc => doc.id === id)?.name) ? { ...a, doctorName: updates.name! } : a));
+    }
+  };
+
   const deleteDoctor = (id: string) => {
     setDoctors(prev => prev.filter(d => d.id !== id));
   };
@@ -184,9 +202,9 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     <HospitalContext.Provider value={{ 
       currentUser, users, patients, appointments, doctors, 
       login, register, logout,
-      addPatient, deletePatient, 
+      addPatient, updatePatient, deletePatient, 
       addAppointment, deleteAppointment,
-      addDoctor, deleteDoctor,
+      addDoctor, updateDoctor, deleteDoctor,
       updatePatientStatus, resetData 
     }}>
       {children}
