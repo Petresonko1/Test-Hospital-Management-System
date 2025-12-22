@@ -36,19 +36,23 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
 
+  const fetchAllData = async () => {
+    const [u, p, a, d] = await Promise.all([
+      VirtualDB.request<User[]>('GET', '/api/users'),
+      VirtualDB.request<Patient[]>('GET', '/api/patients'),
+      VirtualDB.request<Appointment[]>('GET', '/api/appointments'),
+      VirtualDB.request<Doctor[]>('GET', '/api/doctors')
+    ]);
+    setUsers(u.data || []);
+    setPatients(p.data || []);
+    setAppointments(a.data || []);
+    setDoctors(d.data || []);
+  };
+
   useEffect(() => {
     const init = async () => {
       await VirtualDB.initialize();
-      const usersRes = await VirtualDB.get<User[]>('/api/users');
-      const patientsRes = await VirtualDB.get<Patient[]>('/api/patients');
-      const appointmentsRes = await VirtualDB.get<Appointment[]>('/api/appointments');
-      const doctorsRes = await VirtualDB.get<Doctor[]>('/api/doctors');
-      
-      setUsers(usersRes.data || []);
-      setPatients(patientsRes.data || []);
-      setAppointments(appointmentsRes.data || []);
-      setDoctors(doctorsRes.data || []);
-      
+      await fetchAllData();
       const savedAuth = localStorage.getItem('hs_auth_session');
       if (savedAuth) setCurrentUser(JSON.parse(savedAuth));
       setInitialized(true);
@@ -57,54 +61,29 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const login = async (email: string, password: string) => {
-    const res = await VirtualDB.post<any>('/api/auth/login', { email, password });
+    const res = await VirtualDB.request<any>('POST', '/api/auth/login', { email, password });
     if (res.status === 200 && res.data) {
       setCurrentUser(res.data.user);
       localStorage.setItem('hs_auth_session', JSON.stringify(res.data.user));
+      await fetchAllData();
       return true;
     }
     return false;
   };
 
   const register = async (payload: any) => {
-    const res = await VirtualDB.post<User>('/api/auth/register', payload);
+    const res = await VirtualDB.request<User>('POST', '/api/auth/register', payload);
     if (res.status === 200 && res.data) {
-      const newUser = res.data;
-      if (payload.role === 'doctor') {
-        const newDoc: Doctor = {
-          id: `D${Math.floor(1000 + Math.random() * 9000)}`,
-          name: payload.name,
-          specialty: payload.specialty || 'General Physician',
-          experience: payload.experience || '1 Year',
-          availability: 'Mon - Fri',
-          image: `https://picsum.photos/seed/${newUser.id}/200/200`
-        };
-        setDoctors(prev => [...prev, newDoc]);
-      } else if (payload.role === 'patient') {
-        const newPatient: Patient = {
-          id: `P${Math.floor(1000 + Math.random() * 9000)}`,
-          name: payload.name,
-          age: payload.age || 0,
-          gender: payload.gender || 'Other',
-          bloodGroup: payload.bloodGroup || 'O+',
-          status: payload.status || 'Stable',
-          room: 'Unassigned',
-          admissionDate: new Date().toISOString().split('T')[0],
-          condition: 'Newly Registered',
-          doctor: 'Unassigned',
-          history: []
-        };
-        setPatients(prev => [...prev, newPatient]);
-      }
-      setUsers(prev => [...prev, newUser]);
-      setCurrentUser(newUser);
-      localStorage.setItem('hs_auth_session', JSON.stringify(newUser));
+      setCurrentUser(res.data);
+      localStorage.setItem('hs_auth_session', JSON.stringify(res.data));
+      await fetchAllData();
     }
   };
 
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('hs_auth_session');
+    localStorage.removeItem('hs_session_token_v11-prod');
   };
 
   const updateUser = (id: string, updates: Partial<User>) => {
@@ -117,9 +96,14 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     if (currentUser?.id === id) logout();
   };
 
-  const addPatient = (newPatient: Omit<Patient, 'id' | 'history'>) => {
-    const patient: Patient = { ...newPatient, id: `P${Math.floor(1000 + Math.random() * 9000)}`, history: [] };
-    setPatients(prev => [...prev, patient]);
+  const addPatient = async (newPatient: Omit<Patient, 'id' | 'history'>) => {
+    const res = await VirtualDB.request<Patient>('POST', '/api/patients', newPatient);
+    if (res.status === 200) await fetchAllData();
+    else {
+      // Local fallback for dev if request fails and no real API
+      const patient: Patient = { ...newPatient, id: `P${Math.floor(1000 + Math.random() * 9000)}`, history: [] };
+      setPatients(prev => [...prev, patient]);
+    }
   };
 
   const updatePatient = (id: string, updates: Partial<Patient>) => {
