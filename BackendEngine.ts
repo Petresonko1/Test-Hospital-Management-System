@@ -55,7 +55,6 @@ export class VirtualDB {
   };
 
   static async initialize() {
-    // Only load mocks if the system hasn't been initialized before
     if (!localStorage.getItem(this.KEYS.INIT)) {
       const adminHash = await hashPassword('password123');
       const docHash = await hashPassword('password123');
@@ -93,7 +92,6 @@ export class VirtualDB {
       }
     }
 
-    // VIRTUAL ENGINE IMPLEMENTATION
     await new Promise(r => setTimeout(r, LATENCY));
     let status = 200;
     let data: any = null;
@@ -145,14 +143,20 @@ export class VirtualDB {
       } else { status = 404; }
     }
     else if (method === 'DELETE' && tableKey) {
-      const id = endpoint.split('/').pop();
+      // Robust ID extraction: filter empty segments from split to handle trailing slashes
+      const segments = endpoint.split('/').filter(Boolean);
+      const id = segments[segments.length - 1];
+      
       let table = this.getTable<any>(tableKey);
       const originalLength = table.length;
       table = table.filter(item => item.id !== id);
+      
       if (table.length < originalLength) {
         this.saveTable(tableKey, table);
         data = { success: true };
-      } else { status = 404; }
+      } else { 
+        status = 404; 
+      }
     }
 
     Logger.add(method, endpoint, status, payload);

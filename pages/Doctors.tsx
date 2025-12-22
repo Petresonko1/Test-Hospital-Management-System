@@ -206,9 +206,13 @@ const Doctors = () => {
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [selectedDoctorProfile, setSelectedDoctorProfile] = useState<Doctor | null>(null);
 
-  const handleDelete = (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if(confirm(`Are you sure you want to permanently remove ${name} from the medical staff?`)) {
-      deleteDoctor(id);
+      try {
+        await deleteDoctor(id);
+      } catch (err) {
+        console.error("Delete operation failed:", err);
+      }
     }
   };
 
@@ -233,10 +237,10 @@ const Doctors = () => {
         {doctors.map((doctor) => (
           <div key={doctor.id} className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 p-6 md:p-8 flex flex-col items-center text-center group relative shadow-sm hover:shadow-md transition-shadow">
             {currentUser?.role === 'admin' && (
-              <div className="absolute top-4 right-4 flex space-x-1 z-10">
+              <div className="absolute top-4 right-4 flex space-x-2 z-20">
                 <button 
                   onClick={(e) => { e.stopPropagation(); setEditingDoctor(doctor); }} 
-                  className="p-2 text-amber-500 rounded-full bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all border border-amber-100 dark:border-amber-900/40 shadow-sm"
+                  className="p-2.5 text-amber-500 rounded-full bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-all border border-slate-100 dark:border-slate-700 shadow-md"
                   title="Edit Doctor"
                   aria-label="Edit Doctor"
                 >
@@ -244,7 +248,7 @@ const Doctors = () => {
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleDelete(doctor.id, doctor.name); }} 
-                  className="p-2 text-rose-500 rounded-full bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all border border-rose-100 dark:border-rose-900/40 shadow-sm"
+                  className="p-2.5 text-rose-500 rounded-full bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/40 transition-all border border-slate-100 dark:border-slate-700 shadow-md"
                   title="Remove Doctor"
                   aria-label="Remove Doctor"
                 >
