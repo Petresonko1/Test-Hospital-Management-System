@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { Patient, Appointment, Doctor, User } from './types';
 import { VirtualDB } from './BackendEngine';
 
+// Defines the shape of the hospital context including data and CRUD operations
 interface HospitalContextType {
   currentUser: User | null;
   users: User[];
@@ -18,178 +19,155 @@ interface HospitalContextType {
   updatePatient: (id: string, updates: Partial<Patient>) => Promise<void>;
   deletePatient: (id: string) => Promise<void>;
   addAppointment: (appointment: Omit<Appointment, 'id'>) => Promise<void>;
+  updateAppointment: (id: string, updates: Partial<Appointment>) => Promise<void>;
   deleteAppointment: (id: string) => Promise<void>;
   addDoctor: (doctor: Omit<Doctor, 'id'>) => Promise<void>;
   updateDoctor: (id: string, updates: Partial<Doctor>) => Promise<void>;
   deleteDoctor: (id: string) => Promise<void>;
-  updatePatientStatus: (id: string, status: Patient['status']) => Promise<void>;
-  resetData: () => void;
+  resetData: () => Promise<void>;
 }
 
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
+// Provides hospital data and management methods to the component tree
 export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [initialized, setInitialized] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('healsync_current_user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
 
-  const fetchAllData = async () => {
-    const [u, p, a, d] = await Promise.all([
-      VirtualDB.request<User[]>('GET', '/api/users'),
-      VirtualDB.request<Patient[]>('GET', '/api/patients'),
-      VirtualDB.request<Appointment[]>('GET', '/api/appointments'),
-      VirtualDB.request<Doctor[]>('GET', '/api/doctors')
-    ]);
-    setUsers(u.data || []);
-    setPatients(p.data || []);
-    setAppointments(a.data || []);
-    setDoctors(d.data || []);
+  // Synchronizes local state with the virtual database
+  const refreshData = async () => {
+    const patientsRes = await VirtualDB.request<Patient[]>('GET', '/api/patients');
+    const doctorsRes = await VirtualDB.request<Doctor[]>('GET', '/api/doctors');
+    const appointmentsRes = await VirtualDB.request<Appointment[]>('GET', '/api/appointments');
+    const usersRes = await VirtualDB.request<User[]>('GET', '/api/users');
+
+    if (patientsRes.data) setPatients(patientsRes.data);
+    if (doctorsRes.data) setDoctors(doctorsRes.data);
+    if (appointmentsRes.data) setAppointments(appointmentsRes.data);
+    if (usersRes.data) setUsers(usersRes.data);
   };
 
   useEffect(() => {
     const init = async () => {
       await VirtualDB.initialize();
-      await fetchAllData();
-      const savedAuth = localStorage.getItem('hs_auth_session');
-      if (savedAuth) setCurrentUser(JSON.parse(savedAuth));
-      setInitialized(true);
+      await refreshData();
     };
     init();
   }, []);
 
+  // Handles clinical user authentication
   const login = async (email: string, password: string) => {
-    const res = await VirtualDB.request<any>('POST', '/api/auth/login', { email, password });
+    const res = await VirtualDB.request<{ user: User, token: string }>('POST', '/api/auth/login', { email, password });
     if (res.status === 200 && res.data) {
       setCurrentUser(res.data.user);
-      localStorage.setItem('hs_auth_session', JSON.stringify(res.data.user));
-      await fetchAllData();
+      localStorage.setItem('healsync_current_user', JSON.stringify(res.data.user));
       return true;
     }
     return false;
   };
 
+  // Handles session termination
+  const logout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('healsync_current_user');
+    localStorage.removeItem(VirtualDB.getSessionTokenKey());
+  };
+
+  // Handles user profile registration
   const register = async (payload: any) => {
     const res = await VirtualDB.request<User>('POST', '/api/auth/register', payload);
     if (res.status === 200 && res.data) {
-      const newUser = res.data;
-      // Also initialize profile if role is patient/doctor
-      if (payload.role === 'patient') {
-        await VirtualDB.request('POST', '/api/patients', { 
-          name: payload.name, 
-          age: parseInt(payload.age) || 0,
-          gender: payload.gender,
-          bloodGroup: payload.bloodGroup,
-          status: payload.status,
-          room: 'Unassigned',
-          admissionDate: new Date().toISOString().split('T')[0],
-          condition: 'New Registration',
-          doctor: 'Unassigned',
-          history: []
-        });
-      } else if (payload.role === 'doctor') {
-        await VirtualDB.request('POST', '/api/doctors', {
-          name: payload.name,
-          specialty: payload.specialty,
-          experience: payload.experience,
-          availability: 'Mon - Fri',
-          image: `https://picsum.photos/seed/${newUser.id}/200/200`
-        });
-      }
-      setCurrentUser(newUser);
-      localStorage.setItem('hs_auth_session', JSON.stringify(newUser));
-      await fetchAllData();
+      setCurrentUser(res.data);
+      localStorage.setItem('healsync_current_user', JSON.stringify(res.data));
     }
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('hs_auth_session');
-    // Clear virtual session token but keep database
-    localStorage.removeItem(`hs_session_token_v12-final`);
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
     await VirtualDB.request('PUT', '/api/users', { id, ...updates });
-    await fetchAllData();
+    await refreshData();
   };
 
   const deleteUser = async (id: string) => {
     await VirtualDB.request('DELETE', `/api/users/${id}`);
-    await fetchAllData();
+    await refreshData();
   };
 
-  const addPatient = async (newPatient: Omit<Patient, 'id' | 'history'>) => {
-    await VirtualDB.request('POST', '/api/patients', { ...newPatient, history: [] });
-    await fetchAllData();
+  const addPatient = async (patient: Omit<Patient, 'id' | 'history'>) => {
+    await VirtualDB.request('POST', '/api/patients', { ...patient, history: [] });
+    await refreshData();
   };
 
   const updatePatient = async (id: string, updates: Partial<Patient>) => {
     await VirtualDB.request('PUT', '/api/patients', { id, ...updates });
-    await fetchAllData();
+    await refreshData();
   };
 
   const deletePatient = async (id: string) => {
     await VirtualDB.request('DELETE', `/api/patients/${id}`);
-    await fetchAllData();
+    await refreshData();
   };
 
-  const addAppointment = async (newApp: Omit<Appointment, 'id'>) => {
-    await VirtualDB.request('POST', '/api/appointments', newApp);
-    await fetchAllData();
+  const addAppointment = async (appointment: Omit<Appointment, 'id'>) => {
+    await VirtualDB.request('POST', '/api/appointments', appointment);
+    await refreshData();
+  };
+
+  const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
+    await VirtualDB.request('PUT', '/api/appointments', { id, ...updates });
+    await refreshData();
   };
 
   const deleteAppointment = async (id: string) => {
     await VirtualDB.request('DELETE', `/api/appointments/${id}`);
-    await fetchAllData();
+    await refreshData();
   };
 
-  const addDoctor = async (newDoc: Omit<Doctor, 'id'>) => {
-    await VirtualDB.request('POST', '/api/doctors', newDoc);
-    await fetchAllData();
+  const addDoctor = async (doctor: Omit<Doctor, 'id'>) => {
+    await VirtualDB.request('POST', '/api/doctors', doctor);
+    await refreshData();
   };
 
   const updateDoctor = async (id: string, updates: Partial<Doctor>) => {
     await VirtualDB.request('PUT', '/api/doctors', { id, ...updates });
-    await fetchAllData();
+    await refreshData();
   };
 
   const deleteDoctor = async (id: string) => {
     await VirtualDB.request('DELETE', `/api/doctors/${id}`);
-    await fetchAllData();
+    await refreshData();
   };
 
-  const updatePatientStatus = async (id: string, status: Patient['status']) => {
-    await VirtualDB.request('PUT', '/api/patients', { id, status });
-    await fetchAllData();
-  };
-
-  const resetData = () => {
+  const resetData = async () => {
     localStorage.clear();
     window.location.reload();
   };
 
-  if (!initialized) return null;
-
   return (
-    <HospitalContext.Provider value={{ 
-      currentUser, users, patients, appointments, doctors, 
-      login, register, logout,
+    <HospitalContext.Provider value={{
+      currentUser, users, patients, appointments, doctors,
+      login, logout, register,
       updateUser, deleteUser,
-      addPatient, updatePatient, deletePatient, 
-      addAppointment, deleteAppointment,
+      addPatient, updatePatient, deletePatient,
+      addAppointment, updateAppointment, deleteAppointment,
       addDoctor, updateDoctor, deleteDoctor,
-      updatePatientStatus, resetData 
+      resetData
     }}>
       {children}
     </HospitalContext.Provider>
   );
 };
 
+// Custom hook for consuming the hospital context in functional components
 export const useHospital = () => {
   const context = useContext(HospitalContext);
-  if (!context) throw new Error('useHospital must be used within a HospitalProvider');
+  if (context === undefined) {
+    throw new Error('useHospital must be used within a HospitalProvider');
+  }
   return context;
 };

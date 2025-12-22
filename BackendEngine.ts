@@ -3,11 +3,12 @@ import { User, Patient, Doctor, Appointment } from './types';
 import { MOCK_PATIENTS, MOCK_APPOINTMENTS, MOCK_DOCTORS } from './constants';
 
 /**
- * HEALSYNC CORE VIRTUAL ENGINE (Production Simulation)
+ * HEALSYNC STABLE VIRTUAL ENGINE
+ * Data is persisted in localStorage with permanent keys.
  */
 
-const DB_VERSION = 'v12-final';
-const LATENCY = 300;
+const STORAGE_PREFIX = 'healsync_v1_';
+const LATENCY = 200;
 
 const REMOTE_API_URL = (window as any).process?.env?.VITE_API_URL || null;
 
@@ -45,27 +46,32 @@ export async function hashPassword(password: string): Promise<string> {
 
 export class VirtualDB {
   private static KEYS = {
-    USERS: `hs_users_${DB_VERSION}`,
-    PATIENTS: `hs_patients_${DB_VERSION}`,
-    DOCTORS: `hs_doctors_${DB_VERSION}`,
-    APPOINTMENTS: `hs_appointments_${DB_VERSION}`,
-    TOKEN: `hs_session_token_${DB_VERSION}`
+    INIT: `${STORAGE_PREFIX}initialized`,
+    USERS: `${STORAGE_PREFIX}users`,
+    PATIENTS: `${STORAGE_PREFIX}patients`,
+    DOCTORS: `${STORAGE_PREFIX}doctors`,
+    APPOINTMENTS: `${STORAGE_PREFIX}appointments`,
+    TOKEN: `${STORAGE_PREFIX}session_token`
   };
 
   static async initialize() {
-    if (!localStorage.getItem(this.KEYS.USERS)) {
+    // Only load mocks if the system hasn't been initialized before
+    if (!localStorage.getItem(this.KEYS.INIT)) {
       const adminHash = await hashPassword('password123');
       const docHash = await hashPassword('password123');
       const patHash = await hashPassword('password123');
 
-      localStorage.setItem(this.KEYS.USERS, JSON.stringify([
+      this.saveTable(this.KEYS.USERS, [
         { id: 'u1', email: 'admin@healsync.com', name: 'Super Admin', role: 'admin', passwordHash: adminHash },
         { id: 'u2', email: 'doctor@healsync.com', name: 'Dr. Sarah Wilson', role: 'doctor', passwordHash: docHash },
         { id: 'u3', email: 'patient@healsync.com', name: 'John Doe', role: 'patient', passwordHash: patHash }
-      ]));
-      localStorage.setItem(this.KEYS.PATIENTS, JSON.stringify(MOCK_PATIENTS));
-      localStorage.setItem(this.KEYS.DOCTORS, JSON.stringify(MOCK_DOCTORS));
-      localStorage.setItem(this.KEYS.APPOINTMENTS, JSON.stringify(MOCK_APPOINTMENTS));
+      ]);
+      
+      this.saveTable(this.KEYS.PATIENTS, MOCK_PATIENTS);
+      this.saveTable(this.KEYS.DOCTORS, MOCK_DOCTORS);
+      this.saveTable(this.KEYS.APPOINTMENTS, MOCK_APPOINTMENTS);
+      
+      localStorage.setItem(this.KEYS.INIT, 'true');
     }
   }
 
@@ -154,11 +160,18 @@ export class VirtualDB {
   }
 
   private static getTable<T>(key: string): T[] {
-    return JSON.parse(localStorage.getItem(key) || '[]');
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : [];
+    } catch {
+      return [];
+    }
   }
+
   private static saveTable<T>(key: string, data: T[]) {
     localStorage.setItem(key, JSON.stringify(data));
   }
+
   static getFullDump() {
     return {
       users: this.getTable(this.KEYS.USERS),
@@ -166,5 +179,9 @@ export class VirtualDB {
       doctors: this.getTable(this.KEYS.DOCTORS),
       appointments: this.getTable(this.KEYS.APPOINTMENTS)
     };
+  }
+
+  static getSessionTokenKey() {
+    return this.KEYS.TOKEN;
   }
 }
