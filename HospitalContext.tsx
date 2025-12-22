@@ -3,13 +3,14 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { Patient, Appointment, Doctor, User } from './types';
 import { VirtualDB } from './BackendEngine';
 
-// Defines the shape of the hospital context including data and CRUD operations
 interface HospitalContextType {
   currentUser: User | null;
   users: User[];
   patients: Patient[];
   appointments: Appointment[];
   doctors: Doctor[];
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
   login: (email: string, password: string) => Promise<boolean>;
   register: (payload: any) => Promise<void>;
   logout: () => void;
@@ -29,7 +30,6 @@ interface HospitalContextType {
 
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
-// Provides hospital data and management methods to the component tree
 export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('healsync_current_user');
@@ -39,8 +39,13 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [patients, setPatients] = useState<Patient[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('healsync_theme');
+    if (saved) return saved as 'light' | 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
 
-  // Synchronizes local state with the virtual database
   const refreshData = async () => {
     const patientsRes = await VirtualDB.request<Patient[]>('GET', '/api/patients');
     const doctorsRes = await VirtualDB.request<Doctor[]>('GET', '/api/doctors');
@@ -61,7 +66,17 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     init();
   }, []);
 
-  // Handles clinical user authentication
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('healsync_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
   const login = async (email: string, password: string) => {
     const res = await VirtualDB.request<{ user: User, token: string }>('POST', '/api/auth/login', { email, password });
     if (res.status === 200 && res.data) {
@@ -72,14 +87,12 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     return false;
   };
 
-  // Handles session termination
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('healsync_current_user');
     localStorage.removeItem(VirtualDB.getSessionTokenKey());
   };
 
-  // Handles user profile registration
   const register = async (payload: any) => {
     const res = await VirtualDB.request<User>('POST', '/api/auth/register', payload);
     if (res.status === 200 && res.data) {
@@ -151,6 +164,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   return (
     <HospitalContext.Provider value={{
       currentUser, users, patients, appointments, doctors,
+      theme, toggleTheme,
       login, logout, register,
       updateUser, deleteUser,
       addPatient, updatePatient, deletePatient,
@@ -163,7 +177,6 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   );
 };
 
-// Custom hook for consuming the hospital context in functional components
 export const useHospital = () => {
   const context = useContext(HospitalContext);
   if (context === undefined) {

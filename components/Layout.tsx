@@ -14,7 +14,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon, label, active }) =>
   <Link 
     to={to} 
     className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${
-      active ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-500 hover:bg-slate-100'
+      active 
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/40' 
+        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
     }`}
   >
     {icon}
@@ -25,7 +27,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ to, icon, label, active }) =>
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { resetData, currentUser, logout } = useHospital();
+  const { resetData, currentUser, logout, theme, toggleTheme } = useHospital();
 
   if (!currentUser) return <>{children}</>;
 
@@ -58,12 +60,12 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const menuItems = allMenuItems.filter(item => item.roles.includes(currentUser.role));
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 hidden md:flex flex-col">
+      <aside className="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col transition-colors duration-300">
         <div className="p-8 flex-1">
           <div className="flex items-center space-x-3 text-blue-600 font-bold text-2xl mb-12">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/40">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.628.288a2 2 0 01-1.108.209A2 2 0 019.42 15.42l-1.42-1.42a2 2 0 010-2.828l1.42-1.42a2 2 0 012.828 0l1.42 1.42a2 2 0 010 2.828l-1.42 1.42z" /></svg>
             </div>
             <span>HealSync</span>
@@ -80,13 +82,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
 
         <div className="p-8 space-y-4">
-          <div className="bg-slate-900 rounded-[2rem] p-6 text-white relative overflow-hidden group">
+          <div className="bg-slate-900 dark:bg-slate-800 rounded-[2rem] p-6 text-white relative overflow-hidden group">
             <div className="relative z-10">
               <div className="flex items-center space-x-2 mb-3">
                 <div className={`w-2 h-2 rounded-full ${currentUser.role === 'admin' ? 'bg-amber-400' : 'bg-emerald-400'} animate-pulse`}></div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{currentUser.role} Control</p>
               </div>
-              <p className="text-xs text-slate-300 font-medium">Verified local session active for {currentUser.name}.</p>
+              <p className="text-xs text-slate-300 font-medium">Verified session active for {currentUser.name}.</p>
               {currentUser.role === 'admin' && (
                 <button 
                   onClick={() => {
@@ -98,11 +100,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </button>
               )}
             </div>
-            <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-white/5 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
           </div>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all font-bold"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 dark:hover:text-rose-500 transition-all font-bold"
           >
             <span>Sign Out</span>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -111,30 +112,40 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-10 sticky top-0 z-10 shadow-sm">
-          <div className="flex items-center space-x-4 bg-slate-50 px-5 py-2.5 rounded-2xl w-full max-w-lg border border-slate-200/50">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header className="h-20 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-10 sticky top-0 z-10 shadow-sm transition-colors duration-300">
+          <div className="flex items-center space-x-4 bg-slate-50 dark:bg-slate-800 px-5 py-2.5 rounded-2xl w-full max-w-lg border border-slate-200/50 dark:border-slate-700/50">
             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input type="text" placeholder="Quick search..." className="bg-transparent border-none outline-none text-sm w-full font-medium" />
+            <input type="text" placeholder="Quick search..." className="bg-transparent border-none outline-none text-sm w-full font-medium dark:text-slate-200" />
           </div>
-          <div className="flex items-center space-x-8">
-            <button className="text-slate-400 hover:text-slate-600 relative p-2 rounded-xl hover:bg-slate-50 transition-all">
+          <div className="flex items-center space-x-6">
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm"
+            >
+              {theme === 'light' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 9H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+              )}
+            </button>
+            <button className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 relative p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
             </button>
             <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-800">{currentUser.name}</p>
-                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{currentUser.role}</p>
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{currentUser.name}</p>
+                <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-widest">{currentUser.role}</p>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 p-0.5 border border-slate-200">
+              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <img src={`https://picsum.photos/seed/${currentUser.id}/200/200`} className="w-full h-full rounded-xl object-cover" alt="User" />
               </div>
             </div>
           </div>
         </header>
 
-        <div className="p-10 overflow-y-auto h-full scroll-smooth">
+        <div className="p-6 md:p-10 overflow-y-auto h-full scroll-smooth">
           {children}
         </div>
       </main>
