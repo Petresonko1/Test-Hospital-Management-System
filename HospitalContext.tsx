@@ -3,6 +3,14 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { Patient, Appointment, Doctor, User, UserRole } from './types';
 import { MOCK_PATIENTS, MOCK_APPOINTMENTS, MOCK_DOCTORS } from './constants';
 
+interface RegisterPayload extends Omit<User, 'id'> {
+  age?: number;
+  gender?: 'Male' | 'Female' | 'Other';
+  bloodGroup?: string;
+  specialty?: string;
+  experience?: string;
+}
+
 interface HospitalContextType {
   currentUser: User | null;
   users: User[];
@@ -10,7 +18,7 @@ interface HospitalContextType {
   appointments: Appointment[];
   doctors: Doctor[];
   login: (email: string, password: string) => boolean;
-  register: (userData: Omit<User, 'id'>) => void;
+  register: (payload: RegisterPayload) => void;
   logout: () => void;
   addPatient: (patient: Omit<Patient, 'id' | 'history'>) => void;
   deletePatient: (id: string) => void;
@@ -25,11 +33,11 @@ interface HospitalContextType {
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  USERS: 'healsync_users_v4',
-  AUTH: 'healsync_auth_v4',
-  PATIENTS: 'healsync_patients_v4',
-  APPOINTMENTS: 'healsync_appointments_v4',
-  DOCTORS: 'healsync_doctors_v4'
+  USERS: 'healsync_users_v5',
+  AUTH: 'healsync_auth_v5',
+  PATIENTS: 'healsync_patients_v5',
+  APPOINTMENTS: 'healsync_appointments_v5',
+  DOCTORS: 'healsync_doctors_v5'
 };
 
 const DEFAULT_USERS: User[] = [
@@ -64,7 +72,6 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     return saved ? JSON.parse(saved) : MOCK_DOCTORS;
   });
 
-  // Global Persistence
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
     localStorage.setItem(STORAGE_KEYS.AUTH, JSON.stringify(currentUser));
@@ -74,7 +81,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [users, currentUser, patients, appointments, doctors]);
 
   const login = (email: string, password: string) => {
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
     if (user) {
       setCurrentUser(user);
       return true;
@@ -82,33 +89,38 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     return false;
   };
 
-  const register = (userData: Omit<User, 'id'>) => {
+  const register = (payload: RegisterPayload) => {
     const id = `U${Math.random().toString(36).substr(2, 9)}`;
-    const newUser: User = { ...userData, id };
+    const { email, name, password, role, ...extra } = payload;
     
+    const newUser: User = { id, email, name, password, role };
     setUsers(prev => [...prev, newUser]);
     
-    // Automatically create profile based on role
-    if (userData.role === 'doctor') {
-      addDoctor({
-        name: userData.name,
-        specialty: 'General Physician',
-        experience: 'Newly Registered',
+    if (role === 'doctor') {
+      const newDoc: Doctor = {
+        id: `D${Math.floor(1000 + Math.random() * 9000)}`,
+        name: name,
+        specialty: extra.specialty || 'General Physician',
+        experience: extra.experience || '1 Year',
         availability: 'Mon - Fri',
         image: `https://picsum.photos/seed/${id}/200/200`
-      });
-    } else if (userData.role === 'patient') {
-      addPatient({
-        name: userData.name,
-        age: 0,
-        gender: 'Other',
-        bloodGroup: 'Unknown',
+      };
+      setDoctors(prev => [...prev, newDoc]);
+    } else if (role === 'patient') {
+      const newPatient: Patient = {
+        id: `P${Math.floor(1000 + Math.random() * 9000)}`,
+        name: name,
+        age: extra.age || 0,
+        gender: extra.gender || 'Other',
+        bloodGroup: extra.bloodGroup || 'O+',
         status: 'Stable',
         room: 'Unassigned',
         admissionDate: new Date().toISOString().split('T')[0],
         condition: 'Newly Registered',
-        doctor: 'Unassigned'
-      });
+        doctor: 'Unassigned',
+        history: []
+      };
+      setPatients(prev => [...prev, newPatient]);
     }
     
     setCurrentUser(newUser);
@@ -123,13 +135,11 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
       history: []
     };
     setPatients(prev => [...prev, patient]);
-    console.log('Added Patient:', patient);
   };
 
   const deletePatient = (id: string) => {
     setPatients(prev => prev.filter(p => p.id !== id));
     setAppointments(prev => prev.filter(a => a.patientId !== id));
-    console.log('Deleted Patient:', id);
   };
 
   const addAppointment = (newApp: Omit<Appointment, 'id'>) => {
@@ -138,12 +148,10 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
       id: `A${Math.floor(1000 + Math.random() * 9000)}`
     };
     setAppointments(prev => [...prev, appointment]);
-    console.log('Added Appointment:', appointment);
   };
 
   const deleteAppointment = (id: string) => {
     setAppointments(prev => prev.filter(a => a.id !== id));
-    console.log('Deleted Appointment:', id);
   };
 
   const addDoctor = (newDoc: Omit<Doctor, 'id'>) => {
@@ -152,12 +160,10 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
       id: `D${Math.floor(1000 + Math.random() * 9000)}`
     };
     setDoctors(prev => [...prev, doctor]);
-    console.log('Added Doctor:', doctor);
   };
 
   const deleteDoctor = (id: string) => {
     setDoctors(prev => prev.filter(d => d.id !== id));
-    console.log('Deleted Doctor:', id);
   };
 
   const updatePatientStatus = (id: string, status: Patient['status']) => {
