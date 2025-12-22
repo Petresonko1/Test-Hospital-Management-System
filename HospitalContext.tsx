@@ -12,17 +12,17 @@ interface HospitalContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (payload: any) => Promise<void>;
   logout: () => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  addPatient: (patient: Omit<Patient, 'id' | 'history'>) => void;
-  updatePatient: (id: string, updates: Partial<Patient>) => void;
-  deletePatient: (id: string) => void;
-  addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
-  deleteAppointment: (id: string) => void;
-  addDoctor: (doctor: Omit<Doctor, 'id'>) => void;
-  updateDoctor: (id: string, updates: Partial<Doctor>) => void;
-  deleteDoctor: (id: string) => void;
-  updatePatientStatus: (id: string, status: Patient['status']) => void;
+  updateUser: (id: string, updates: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
+  addPatient: (patient: Omit<Patient, 'id' | 'history'>) => Promise<void>;
+  updatePatient: (id: string, updates: Partial<Patient>) => Promise<void>;
+  deletePatient: (id: string) => Promise<void>;
+  addAppointment: (appointment: Omit<Appointment, 'id'>) => Promise<void>;
+  deleteAppointment: (id: string) => Promise<void>;
+  addDoctor: (doctor: Omit<Doctor, 'id'>) => Promise<void>;
+  updateDoctor: (id: string, updates: Partial<Doctor>) => Promise<void>;
+  deleteDoctor: (id: string) => Promise<void>;
+  updatePatientStatus: (id: string, status: Patient['status']) => Promise<void>;
   resetData: () => void;
 }
 
@@ -74,8 +74,32 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   const register = async (payload: any) => {
     const res = await VirtualDB.request<User>('POST', '/api/auth/register', payload);
     if (res.status === 200 && res.data) {
-      setCurrentUser(res.data);
-      localStorage.setItem('hs_auth_session', JSON.stringify(res.data));
+      const newUser = res.data;
+      // Also initialize profile if role is patient/doctor
+      if (payload.role === 'patient') {
+        await VirtualDB.request('POST', '/api/patients', { 
+          name: payload.name, 
+          age: parseInt(payload.age) || 0,
+          gender: payload.gender,
+          bloodGroup: payload.bloodGroup,
+          status: payload.status,
+          room: 'Unassigned',
+          admissionDate: new Date().toISOString().split('T')[0],
+          condition: 'New Registration',
+          doctor: 'Unassigned',
+          history: []
+        });
+      } else if (payload.role === 'doctor') {
+        await VirtualDB.request('POST', '/api/doctors', {
+          name: payload.name,
+          specialty: payload.specialty,
+          experience: payload.experience,
+          availability: 'Mon - Fri',
+          image: `https://picsum.photos/seed/${newUser.id}/200/200`
+        });
+      }
+      setCurrentUser(newUser);
+      localStorage.setItem('hs_auth_session', JSON.stringify(newUser));
       await fetchAllData();
     }
   };
@@ -83,58 +107,63 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('hs_auth_session');
-    localStorage.removeItem('hs_session_token_v11-prod');
+    // Clear virtual session token but keep database
+    localStorage.removeItem(`hs_session_token_v12-final`);
   };
 
-  const updateUser = (id: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
-    if (currentUser?.id === id) setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+  const updateUser = async (id: string, updates: Partial<User>) => {
+    await VirtualDB.request('PUT', '/api/users', { id, ...updates });
+    await fetchAllData();
   };
 
-  const deleteUser = (id: string) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    if (currentUser?.id === id) logout();
+  const deleteUser = async (id: string) => {
+    await VirtualDB.request('DELETE', `/api/users/${id}`);
+    await fetchAllData();
   };
 
   const addPatient = async (newPatient: Omit<Patient, 'id' | 'history'>) => {
-    const res = await VirtualDB.request<Patient>('POST', '/api/patients', newPatient);
-    if (res.status === 200) await fetchAllData();
-    else {
-      // Local fallback for dev if request fails and no real API
-      const patient: Patient = { ...newPatient, id: `P${Math.floor(1000 + Math.random() * 9000)}`, history: [] };
-      setPatients(prev => [...prev, patient]);
-    }
+    await VirtualDB.request('POST', '/api/patients', { ...newPatient, history: [] });
+    await fetchAllData();
   };
 
-  const updatePatient = (id: string, updates: Partial<Patient>) => {
-    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  const updatePatient = async (id: string, updates: Partial<Patient>) => {
+    await VirtualDB.request('PUT', '/api/patients', { id, ...updates });
+    await fetchAllData();
   };
 
-  const deletePatient = (id: string) => {
-    setPatients(prev => prev.filter(p => p.id !== id));
-    setAppointments(prev => prev.filter(a => a.patientId !== id));
+  const deletePatient = async (id: string) => {
+    await VirtualDB.request('DELETE', `/api/patients/${id}`);
+    await fetchAllData();
   };
 
-  const addAppointment = (newApp: Omit<Appointment, 'id'>) => {
-    const appointment: Appointment = { ...newApp, id: `A${Math.floor(1000 + Math.random() * 9000)}` };
-    setAppointments(prev => [...prev, appointment]);
+  const addAppointment = async (newApp: Omit<Appointment, 'id'>) => {
+    await VirtualDB.request('POST', '/api/appointments', newApp);
+    await fetchAllData();
   };
 
-  const deleteAppointment = (id: string) => setAppointments(prev => prev.filter(a => a.id !== id));
-
-  const addDoctor = (newDoc: Omit<Doctor, 'id'>) => {
-    const doctor: Doctor = { ...newDoc, id: `D${Math.floor(1000 + Math.random() * 9000)}` };
-    setDoctors(prev => [...prev, doctor]);
+  const deleteAppointment = async (id: string) => {
+    await VirtualDB.request('DELETE', `/api/appointments/${id}`);
+    await fetchAllData();
   };
 
-  const updateDoctor = (id: string, updates: Partial<Doctor>) => {
-    setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+  const addDoctor = async (newDoc: Omit<Doctor, 'id'>) => {
+    await VirtualDB.request('POST', '/api/doctors', newDoc);
+    await fetchAllData();
   };
 
-  const deleteDoctor = (id: string) => setDoctors(prev => prev.filter(d => d.id !== id));
+  const updateDoctor = async (id: string, updates: Partial<Doctor>) => {
+    await VirtualDB.request('PUT', '/api/doctors', { id, ...updates });
+    await fetchAllData();
+  };
 
-  const updatePatientStatus = (id: string, status: Patient['status']) => {
-    setPatients(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+  const deleteDoctor = async (id: string) => {
+    await VirtualDB.request('DELETE', `/api/doctors/${id}`);
+    await fetchAllData();
+  };
+
+  const updatePatientStatus = async (id: string, status: Patient['status']) => {
+    await VirtualDB.request('PUT', '/api/patients', { id, status });
+    await fetchAllData();
   };
 
   const resetData = () => {

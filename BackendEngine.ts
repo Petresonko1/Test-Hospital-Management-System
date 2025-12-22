@@ -3,14 +3,12 @@ import { User, Patient, Doctor, Appointment } from './types';
 import { MOCK_PATIENTS, MOCK_APPOINTMENTS, MOCK_DOCTORS } from './constants';
 
 /**
- * HEALSYNC PRODUCTION BRIDGE
- * Switch between simulated LocalStorage and a real Remote API.
+ * HEALSYNC CORE VIRTUAL ENGINE (Production Simulation)
  */
 
-const DB_VERSION = 'v11-prod';
-const LATENCY = 400;
+const DB_VERSION = 'v12-final';
+const LATENCY = 300;
 
-// Change this to your real production URL when you have it
 const REMOTE_API_URL = (window as any).process?.env?.VITE_API_URL || null;
 
 export type ApiResponse<T> = {
@@ -57,8 +55,13 @@ export class VirtualDB {
   static async initialize() {
     if (!localStorage.getItem(this.KEYS.USERS)) {
       const adminHash = await hashPassword('password123');
+      const docHash = await hashPassword('password123');
+      const patHash = await hashPassword('password123');
+
       localStorage.setItem(this.KEYS.USERS, JSON.stringify([
-        { id: 'u1', email: 'admin@healsync.com', name: 'Super Admin', role: 'admin', passwordHash: adminHash }
+        { id: 'u1', email: 'admin@healsync.com', name: 'Super Admin', role: 'admin', passwordHash: adminHash },
+        { id: 'u2', email: 'doctor@healsync.com', name: 'Dr. Sarah Wilson', role: 'doctor', passwordHash: docHash },
+        { id: 'u3', email: 'patient@healsync.com', name: 'John Doe', role: 'patient', passwordHash: patHash }
       ]));
       localStorage.setItem(this.KEYS.PATIENTS, JSON.stringify(MOCK_PATIENTS));
       localStorage.setItem(this.KEYS.DOCTORS, JSON.stringify(MOCK_DOCTORS));
@@ -66,41 +69,37 @@ export class VirtualDB {
     }
   }
 
-  // --- UNIVERSAL REQUEST HANDLER (REAL OR VIRTUAL) ---
-
   static async request<T>(method: string, endpoint: string, payload?: any): Promise<ApiResponse<T>> {
     const token = localStorage.getItem(this.KEYS.TOKEN);
     
-    // IF WE HAVE A REAL REMOTE API CONFIGURED
     if (REMOTE_API_URL) {
       try {
         const response = await fetch(`${REMOTE_API_URL}${endpoint}`, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': token ? `Bearer ${token}` : '' },
           body: payload ? JSON.stringify(payload) : undefined
         });
         const data = await response.json();
         Logger.add(method, endpoint, response.status, payload);
         return { status: response.status, data, timestamp: new Date().toISOString() };
       } catch (error) {
-        Logger.add(method, endpoint, 500, { error: 'Network failure' });
-        return { status: 500, message: 'Remote server unreachable', timestamp: new Date().toISOString() };
+        return { status: 500, message: 'Server unreachable', timestamp: new Date().toISOString() };
       }
     }
 
-    // FALLBACK TO VIRTUAL ENGINE (FOR DEVELOPMENT)
+    // VIRTUAL ENGINE IMPLEMENTATION
     await new Promise(r => setTimeout(r, LATENCY));
     let status = 200;
     let data: any = null;
 
+    const tableKey = endpoint.includes('/patients') ? this.KEYS.PATIENTS :
+                    endpoint.includes('/doctors') ? this.KEYS.DOCTORS :
+                    endpoint.includes('/appointments') ? this.KEYS.APPOINTMENTS :
+                    endpoint.includes('/users') ? this.KEYS.USERS : null;
+
     if (method === 'GET') {
-      if (endpoint.includes('/patients')) data = this.getTable(this.KEYS.PATIENTS);
-      else if (endpoint.includes('/doctors')) data = this.getTable(this.KEYS.DOCTORS);
-      else if (endpoint.includes('/appointments')) data = this.getTable(this.KEYS.APPOINTMENTS);
-      else if (endpoint.includes('/system/logs')) data = Logger.getLogs();
+      if (endpoint === '/api/system/logs') data = Logger.getLogs();
+      else if (tableKey) data = this.getTable(tableKey);
     } 
     else if (method === 'POST') {
       if (endpoint === '/api/auth/login') {
@@ -109,17 +108,51 @@ export class VirtualDB {
         const user = users.find(u => u.email === payload.email && u.passwordHash === hash);
         if (user) {
           const { passwordHash, ...safeUser } = user;
-          data = { user: safeUser, token: 'v_jwt_token_' + Math.random() };
+          data = { user: safeUser, token: 'v_jwt_' + Math.random().toString(36).substring(7) };
           localStorage.setItem(this.KEYS.TOKEN, data.token);
         } else { status = 401; }
+      } 
+      else if (endpoint === '/api/auth/register') {
+        const users = this.getTable<any>(this.KEYS.USERS);
+        const hash = await hashPassword(payload.password);
+        const newUser = { id: 'U' + Math.random().toString(36).substring(7), ...payload, passwordHash: hash };
+        users.push(newUser);
+        this.saveTable(this.KEYS.USERS, users);
+        const { passwordHash, ...safeUser } = newUser;
+        data = safeUser;
       }
+      else if (tableKey) {
+        const table = this.getTable<any>(tableKey);
+        const newItem = { id: (tableKey === this.KEYS.PATIENTS ? 'P' : tableKey === this.KEYS.DOCTORS ? 'D' : 'A') + Math.floor(1000 + Math.random() * 9000), ...payload };
+        table.push(newItem);
+        this.saveTable(tableKey, table);
+        data = newItem;
+      }
+    }
+    else if (method === 'PUT' && tableKey) {
+      const table = this.getTable<any>(tableKey);
+      const index = table.findIndex(item => item.id === payload.id);
+      if (index !== -1) {
+        table[index] = { ...table[index], ...payload };
+        this.saveTable(tableKey, table);
+        data = table[index];
+      } else { status = 404; }
+    }
+    else if (method === 'DELETE' && tableKey) {
+      const id = endpoint.split('/').pop();
+      let table = this.getTable<any>(tableKey);
+      const originalLength = table.length;
+      table = table.filter(item => item.id !== id);
+      if (table.length < originalLength) {
+        this.saveTable(tableKey, table);
+        data = { success: true };
+      } else { status = 404; }
     }
 
     Logger.add(method, endpoint, status, payload);
     return { status, data, timestamp: new Date().toISOString() };
   }
 
-  // --- INTERNAL STORAGE HELPERS ---
   private static getTable<T>(key: string): T[] {
     return JSON.parse(localStorage.getItem(key) || '[]');
   }
