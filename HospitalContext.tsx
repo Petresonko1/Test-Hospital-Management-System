@@ -20,6 +20,10 @@ interface HospitalContextType {
   login: (email: string, password: string) => boolean;
   register: (payload: RegisterPayload) => void;
   logout: () => void;
+  // User Management
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
+  // Medical Entities
   addPatient: (patient: Omit<Patient, 'id' | 'history'>) => void;
   updatePatient: (id: string, updates: Partial<Patient>) => void;
   deletePatient: (id: string) => void;
@@ -35,11 +39,11 @@ interface HospitalContextType {
 const HospitalContext = createContext<HospitalContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  USERS: 'healsync_users_v6',
-  AUTH: 'healsync_auth_v6',
-  PATIENTS: 'healsync_patients_v6',
-  APPOINTMENTS: 'healsync_appointments_v6',
-  DOCTORS: 'healsync_doctors_v6'
+  USERS: 'healsync_users_v7',
+  AUTH: 'healsync_auth_v7',
+  PATIENTS: 'healsync_patients_v7',
+  APPOINTMENTS: 'healsync_appointments_v7',
+  DOCTORS: 'healsync_doctors_v7'
 };
 
 const DEFAULT_USERS: User[] = [
@@ -130,6 +134,17 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const logout = () => setCurrentUser(null);
 
+  // Core User management (The "Backend" Logic)
+  const updateUser = (id: string, updates: Partial<User>) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    if (currentUser?.id === id) setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
+  };
+
+  const deleteUser = (id: string) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    if (currentUser?.id === id) logout();
+  };
+
   const addPatient = (newPatient: Omit<Patient, 'id' | 'history'>) => {
     const patient: Patient = {
       ...newPatient,
@@ -141,15 +156,23 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const updatePatient = (id: string, updates: Partial<Patient>) => {
     setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-    // Sync name to appointments if it changed
     if (updates.name) {
       setAppointments(prev => prev.map(a => a.patientId === id ? { ...a, patientName: updates.name! } : a));
+      // Also update the linked user record if it exists
+      const linkedUser = users.find(u => u.name === patients.find(p => p.id === id)?.name);
+      if (linkedUser) updateUser(linkedUser.id, { name: updates.name });
     }
   };
 
   const deletePatient = (id: string) => {
+    const patient = patients.find(p => p.id === id);
     setPatients(prev => prev.filter(p => p.id !== id));
     setAppointments(prev => prev.filter(a => a.patientId !== id));
+    // Remove the associated login account
+    if (patient) {
+      const linkedUser = users.find(u => u.name === patient.name && u.role === 'patient');
+      if (linkedUser) deleteUser(linkedUser.id);
+    }
   };
 
   const addAppointment = (newApp: Omit<Appointment, 'id'>) => {
@@ -173,15 +196,23 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const updateDoctor = (id: string, updates: Partial<Doctor>) => {
+    const oldName = doctors.find(d => d.id === id)?.name;
     setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
-    // Sync name to appointments
     if (updates.name) {
-      setAppointments(prev => prev.map(a => a.doctorName === (doctors.find(doc => doc.id === id)?.name) ? { ...a, doctorName: updates.name! } : a));
+      setAppointments(prev => prev.map(a => a.doctorName === oldName ? { ...a, doctorName: updates.name! } : a));
+      const linkedUser = users.find(u => u.name === oldName && u.role === 'doctor');
+      if (linkedUser) updateUser(linkedUser.id, { name: updates.name });
     }
   };
 
   const deleteDoctor = (id: string) => {
+    const doctor = doctors.find(d => d.id === id);
     setDoctors(prev => prev.filter(d => d.id !== id));
+    // Remove associated login account
+    if (doctor) {
+      const linkedUser = users.find(u => u.name === doctor.name && u.role === 'doctor');
+      if (linkedUser) deleteUser(linkedUser.id);
+    }
   };
 
   const updatePatientStatus = (id: string, status: Patient['status']) => {
@@ -202,6 +233,7 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     <HospitalContext.Provider value={{ 
       currentUser, users, patients, appointments, doctors, 
       login, register, logout,
+      updateUser, deleteUser,
       addPatient, updatePatient, deletePatient, 
       addAppointment, deleteAppointment,
       addDoctor, updateDoctor, deleteDoctor,

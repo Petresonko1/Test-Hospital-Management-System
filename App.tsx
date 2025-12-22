@@ -9,11 +9,13 @@ import Doctors from './pages/Doctors';
 import AIAssistant from './pages/AIAssistant';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Users from './pages/Users';
 import { HospitalProvider, useHospital } from './HospitalContext';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
   const { currentUser } = useHospital();
   if (!currentUser) return <Navigate to="/login" replace />;
+  if (roles && !roles.includes(currentUser.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -31,7 +33,7 @@ const App: React.FC = () => {
             </ProtectedRoute>
           } />
           <Route path="/patients" element={
-            <ProtectedRoute>
+            <ProtectedRoute roles={['admin', 'doctor']}>
               <Layout><Patients /></Layout>
             </ProtectedRoute>
           } />
@@ -48,6 +50,11 @@ const App: React.FC = () => {
           <Route path="/ai-assistant" element={
             <ProtectedRoute>
               <Layout><AIAssistant /></Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/system" element={
+            <ProtectedRoute roles={['admin']}>
+              <Layout><Users /></Layout>
             </ProtectedRoute>
           } />
         </Routes>
