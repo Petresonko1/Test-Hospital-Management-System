@@ -1,5 +1,30 @@
 
-import { Patient, Appointment, Doctor } from './types';
+import { Patient, Appointment, Doctor, User } from './types';
+
+// The SHA-256 hash for "password123" is ef92b778bafe771e89245b89ec8c19171e774482e9e993ef465453664327a14d
+export const MOCK_USERS: User[] = [
+  {
+    id: 'u1',
+    email: 'admin@healsync.com',
+    name: 'Super Admin',
+    role: 'admin',
+    passwordHash: 'ef92b778bafe771e89245b89ec8c19171e774482e9e993ef465453664327a14d'
+  },
+  {
+    id: 'u2',
+    email: 'doctor@healsync.com',
+    name: 'Dr. Sarah Wilson',
+    role: 'doctor',
+    passwordHash: 'ef92b778bafe771e89245b89ec8c19171e774482e9e993ef465453664327a14d'
+  },
+  {
+    id: 'u3',
+    email: 'patient@healsync.com',
+    name: 'John Doe',
+    role: 'patient',
+    passwordHash: 'ef92b778bafe771e89245b89ec8c19171e774482e9e993ef465453664327a14d'
+  }
+];
 
 export const MOCK_PATIENTS: Patient[] = [
   {

@@ -7,6 +7,7 @@ export interface User {
   name: string;
   role: UserRole;
   password?: string;
+  passwordHash?: string;
 }
 
 export type PatientStatus = 'Stable' | 'Critical' | 'Discharged' | 'In Treatment';

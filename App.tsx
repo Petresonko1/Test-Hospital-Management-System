@@ -12,7 +12,11 @@ import Register from './pages/Register';
 import Users from './pages/Users';
 import { HospitalProvider, useHospital } from './HospitalContext';
 
-const ProtectedRoute = ({ children, roles }: { children: React.ReactNode, roles?: string[] }) => {
+/**
+ * Fix: Made children optional in the props type to allow the JSX engine to pass them implicitly 
+ * as the component's inner content without throwing a missing required prop error.
+ */
+const ProtectedRoute = ({ children, roles }: { children?: React.ReactNode, roles?: string[] }) => {
   const { currentUser } = useHospital();
   if (!currentUser) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(currentUser.role)) return <Navigate to="/" replace />;

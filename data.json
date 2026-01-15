@@ -1,0 +1,91 @@
+{
+    "patients": [
+        {
+            "id": "P001",
+            "name": "John Doe",
+            "age": 45,
+            "gender": "Male",
+            "bloodGroup": "O+",
+            "status": "Stable",
+            "room": "302A",
+            "admissionDate": "2024-03-10",
+            "condition": "Post-operative recovery",
+            "doctor": "Dr. Sarah Wilson",
+            "history": [
+                {
+                    "date": "2024-03-10",
+                    "diagnosis": "Appendicitis",
+                    "treatment": "Appendectomy",
+                    "doctor": "Dr. Sarah Wilson"
+                }
+            ]
+        },
+        {
+            "id": "P002",
+            "name": "Jane Smith",
+            "age": 32,
+            "gender": "Female",
+            "bloodGroup": "A-",
+            "status": "Critical",
+            "room": "ICU-1",
+            "admissionDate": "2024-03-12",
+            "condition": "Acute Respiratory Distress",
+            "doctor": "Dr. Michael Chen",
+            "history": []
+        }
+    ],
+    "doctors": [
+        {
+            "id": "D001",
+            "name": "Dr. Sarah Wilson",
+            "specialty": "General Surgeon",
+            "experience": "12 Years",
+            "availability": "Mon, Wed, Fri",
+            "image": "https://picsum.photos/seed/doctor1/200/200"
+        },
+        {
+            "id": "D002",
+            "name": "Dr. Michael Chen",
+            "specialty": "Cardiologist",
+            "experience": "15 Years",
+            "availability": "Tue, Thu, Sat",
+            "image": "https://picsum.photos/seed/doctor2/200/200"
+        },
+        {
+            "id": "D003",
+            "name": "Dr. Emily Blunt",
+            "specialty": "Endocrinologist",
+            "experience": "8 Years",
+            "availability": "Mon, Tue, Wed",
+            "image": "https://picsum.photos/seed/doctor3/200/200"
+        }
+    ],
+    "appointments": [
+        {
+            "id": "A001",
+            "patientId": "P001",
+            "patientName": "John Doe",
+            "doctorName": "Dr. Sarah Wilson",
+            "department": "Surgery",
+            "date": "2024-03-15",
+            "time": "10:00 AM",
+            "status": "Scheduled"
+        }
+    ],
+    "users": [
+        {
+            "id": "u1",
+            "email": "admin@healsync.com",
+            "name": "Super Admin",
+            "role": "admin",
+            "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+        },
+        {
+            "id": "u2",
+            "email": "doctor@healsync.com",
+            "name": "Dr. Sarah Wilson",
+            "role": "doctor",
+            "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
+        }
+    ]
+}

@@ -24,7 +24,8 @@ const Login = () => {
         setError('Invalid clinical credentials. Please check your email/password.');
       }
     } catch (err) {
-      setError('A network error occurred. Please try again later.');
+      setError('A system error occurred during authentication.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -91,18 +92,10 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="mt-8 text-center space-y-4">
+        <div className="mt-8 text-center">
           <p className="text-slate-400 font-medium text-sm">
             Don't have an account? <Link to="/register" className="text-blue-600 font-bold hover:underline">Register Now</Link>
           </p>
-          <div className="pt-6 border-t border-slate-100">
-            <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest mb-3">Live Developer Shortcuts</p>
-            <div className="flex flex-wrap justify-center gap-2">
-               <button onClick={() => {setEmail('admin@healsync.com'); setPassword('password123');}} className="text-[9px] bg-slate-50 px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 font-bold transition-colors border border-slate-100">ADMIN</button>
-               <button onClick={() => {setEmail('doctor@healsync.com'); setPassword('password123');}} className="text-[9px] bg-slate-50 px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 font-bold transition-colors border border-slate-100">DOCTOR</button>
-               <button onClick={() => {setEmail('patient@healsync.com'); setPassword('password123');}} className="text-[9px] bg-slate-50 px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 font-bold transition-colors border border-slate-100">PATIENT</button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

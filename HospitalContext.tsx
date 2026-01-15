@@ -1,7 +1,8 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Patient, Appointment, Doctor, User, AppNotification } from './types';
-import { VirtualDB } from './BackendEngine';
+import { hashPassword } from './BackendEngine';
+import { MOCK_PATIENTS, MOCK_APPOINTMENTS, MOCK_DOCTORS, MOCK_USERS } from './constants';
 
 interface HospitalContextType {
   currentUser: User | null;
@@ -38,10 +39,39 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     const saved = localStorage.getItem('healsync_current_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [users, setUsers] = useState<User[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+
+  const [users, setUsers] = useState<User[]>(() => {
+    const saved = localStorage.getItem('healsync_users');
+    let baseUsers = saved ? JSON.parse(saved) : MOCK_USERS;
+    
+    // Safety: Ensure mock users are always present and updated with latest hashes
+    MOCK_USERS.forEach(mock => {
+      const idx = baseUsers.findIndex((u: User) => u.email === mock.email);
+      if (idx === -1) {
+        baseUsers.push(mock);
+      } else {
+        baseUsers[idx] = { ...baseUsers[idx], passwordHash: mock.passwordHash, role: mock.role };
+      }
+    });
+    
+    return baseUsers;
+  });
+
+  const [patients, setPatients] = useState<Patient[]>(() => {
+    const saved = localStorage.getItem('healsync_patients');
+    return saved ? JSON.parse(saved) : MOCK_PATIENTS;
+  });
+
+  const [appointments, setAppointments] = useState<Appointment[]>(() => {
+    const saved = localStorage.getItem('healsync_appointments');
+    return saved ? JSON.parse(saved) : MOCK_APPOINTMENTS;
+  });
+
+  const [doctors, setDoctors] = useState<Doctor[]>(() => {
+    const saved = localStorage.getItem('healsync_doctors');
+    return saved ? JSON.parse(saved) : MOCK_DOCTORS;
+  });
+
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -50,28 +80,22 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
-  const refreshData = async () => {
-    const patientsRes = await VirtualDB.request<Patient[]>('GET', '/api/patients');
-    const doctorsRes = await VirtualDB.request<Doctor[]>('GET', '/api/doctors');
-    const appointmentsRes = await VirtualDB.request<Appointment[]>('GET', '/api/appointments');
-    const usersRes = await VirtualDB.request<User[]>('GET', '/api/users');
-
-    if (patientsRes.data) setPatients(patientsRes.data);
-    if (doctorsRes.data) setDoctors(doctorsRes.data);
-    if (appointmentsRes.data) setAppointments(appointmentsRes.data);
-    if (usersRes.data) setUsers(usersRes.data);
-  };
+  // Persistence Effects
+  useEffect(() => {
+    localStorage.setItem('healsync_users', JSON.stringify(users));
+  }, [users]);
 
   useEffect(() => {
-    const init = async () => {
-      await VirtualDB.initialize();
-      await refreshData();
-      
-      // Initial notification
-      addNotification('System Online', 'HealSync secure virtual environment initialized.', 'system');
-    };
-    init();
-  }, []);
+    localStorage.setItem('healsync_patients', JSON.stringify(patients));
+  }, [patients]);
+
+  useEffect(() => {
+    localStorage.setItem('healsync_appointments', JSON.stringify(appointments));
+  }, [appointments]);
+
+  useEffect(() => {
+    localStorage.setItem('healsync_doctors', JSON.stringify(doctors));
+  }, [doctors]);
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -101,89 +125,102 @@ export const HospitalProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const login = async (email: string, password: string) => {
-    const res = await VirtualDB.request<{ user: User, token: string }>('POST', '/api/auth/login', { email, password });
-    if (res.status === 200 && res.data) {
-      setCurrentUser(res.data.user);
-      localStorage.setItem('healsync_current_user', JSON.stringify(res.data.user));
-      addNotification('Login Successful', `Welcome back, ${res.data.user.name}`, 'system');
+    const pHash = await hashPassword(password);
+    console.log(`Attempting login for ${email} with hash: ${pHash}`);
+    const user = users.find(u => u.email === email && u.passwordHash === pHash);
+    
+    if (user) {
+      setCurrentUser(user);
+      localStorage.setItem('healsync_current_user', JSON.stringify(user));
+      addNotification('Login Successful', `Welcome back, ${user.name}`, 'system');
       return true;
     }
+    console.warn("Login failed: User not found or hash mismatch.");
     return false;
   };
 
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem('healsync_current_user');
-    localStorage.removeItem(VirtualDB.getSessionTokenKey());
   };
 
   const register = async (payload: any) => {
-    const res = await VirtualDB.request<User>('POST', '/api/auth/register', payload);
-    if (res.status === 200 && res.data) {
-      setCurrentUser(res.data);
-      localStorage.setItem('healsync_current_user', JSON.stringify(res.data));
-    }
+    const pHash = await hashPassword(payload.password);
+    const newUser: User = {
+      id: `u${users.length + 1}`,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role,
+      passwordHash: pHash
+    };
+    setUsers(prev => [...prev, newUser]);
+    setCurrentUser(newUser);
+    localStorage.setItem('healsync_current_user', JSON.stringify(newUser));
+    addNotification('Account Created', `Profile for ${newUser.name} is ready.`, 'system');
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    await VirtualDB.request('PUT', '/api/users', { id, ...updates });
-    await refreshData();
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
   };
 
   const deleteUser = async (id: string) => {
-    await VirtualDB.request('DELETE', `/api/users/${id}`);
-    await refreshData();
+    setUsers(prev => prev.filter(u => u.id !== id));
   };
 
   const addPatient = async (patient: Omit<Patient, 'id' | 'history'>) => {
-    await VirtualDB.request('POST', '/api/patients', { ...patient, history: [] });
+    const newPatient: Patient = {
+      ...patient,
+      id: `P00${patients.length + 1}`,
+      history: []
+    };
+    setPatients(prev => [...prev, newPatient]);
     addNotification('Patient Admitted', `${patient.name} has been added to the directory.`, 'patient');
-    await refreshData();
   };
 
   const updatePatient = async (id: string, updates: Partial<Patient>) => {
-    await VirtualDB.request('PUT', '/api/patients', { id, ...updates });
+    setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
     if (updates.status) {
       addNotification('Status Update', `Patient status changed to ${updates.status}`, 'patient');
     }
-    await refreshData();
   };
 
   const deletePatient = async (id: string) => {
-    await VirtualDB.request('DELETE', `/api/patients/${id}`);
-    await refreshData();
+    setPatients(prev => prev.filter(p => p.id !== id));
   };
 
   const addAppointment = async (appointment: Omit<Appointment, 'id'>) => {
-    await VirtualDB.request('POST', '/api/appointments', appointment);
+    const newApp: Appointment = {
+      ...appointment,
+      id: `A00${appointments.length + 1}`
+    };
+    setAppointments(prev => [...prev, newApp]);
     addNotification('New Appointment', `Visit scheduled for ${appointment.patientName} with ${appointment.doctorName}.`, 'appointment');
-    await refreshData();
   };
 
   const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
-    await VirtualDB.request('PUT', '/api/appointments', { id, ...updates });
-    await refreshData();
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
   };
 
   const deleteAppointment = async (id: string) => {
-    await VirtualDB.request('DELETE', `/api/appointments/${id}`);
-    await refreshData();
+    setAppointments(prev => prev.filter(a => a.id !== id));
   };
 
   const addDoctor = async (doctor: Omit<Doctor, 'id'>) => {
-    await VirtualDB.request('POST', '/api/doctors', doctor);
+    const newDoc: Doctor = {
+      ...doctor,
+      id: `D00${doctors.length + 1}`
+    };
+    setDoctors(prev => [...prev, newDoc]);
     addNotification('Staff Added', `${doctor.name} has joined the medical team.`, 'system');
-    await refreshData();
   };
 
   const updateDoctor = async (id: string, updates: Partial<Doctor>) => {
-    await VirtualDB.request('PUT', '/api/doctors', { id, ...updates });
-    await refreshData();
+    setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
   const deleteDoctor = async (id: string) => {
-    await VirtualDB.request('DELETE', `/api/doctors/${id}`);
-    await refreshData();
+    setDoctors(prev => prev.filter(d => d.id !== id));
+    addNotification('Staff Removed', 'Doctor has been removed from the registry.', 'system');
   };
 
   const resetData = async () => {
