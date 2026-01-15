@@ -1,7 +1,7 @@
 ## Admin Dashboard
 <img width="1854" height="874" alt="image" src="https://github.com/user-attachments/assets/7ee98a7e-0590-40c5-8b60-9e0eae514cc8" />
 
-# Run and deploy your AI Studio app
+# Run and deploy your app
 
 This contains everything you need to run your app locally.
 
